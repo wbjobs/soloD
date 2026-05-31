@@ -1,0 +1,9 @@
+{
+  "name": "distributed-task-queue",
+  "version": "1.0.0",
+  "description": "分布式任务队列原型",
+  "main": "sink.js",
+  "dependencies": {
+    "zeromq": "^6.5.0"
+  }
+}
