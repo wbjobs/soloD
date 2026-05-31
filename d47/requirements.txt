@@ -1,0 +1,5 @@
+PyQt5==5.15.10
+scapy==2.5.0
+geoip2==4.6.0
+folium==0.15.0
+requests==2.31.0
