@@ -1,0 +1,35 @@
+{
+  "name": "hevc-intra-encoder",
+  "version": "1.0.0",
+  "description": "H.265/HEVC Intra Encoder with WebAssembly",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "build:wasm": "cd wasm && make",
+    "test": "react-scripts test"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
