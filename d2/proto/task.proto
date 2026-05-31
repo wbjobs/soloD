@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "./proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (Task);
+  rpc UpdateTask(UpdateTaskRequest) returns (Task);
+  rpc DeleteTask(DeleteTaskRequest) returns (google.protobuf.Empty);
+  rpc GetTask(GetTaskRequest) returns (Task);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  
+  rpc TriggerTask(TriggerTaskRequest) returns (TaskExecution);
+  rpc PauseTask(PauseTaskRequest) returns (Task);
+  rpc ResumeTask(ResumeTaskRequest) returns (Task);
+  
+  rpc GetTaskExecution(GetTaskExecutionRequest) returns (TaskExecution);
+  rpc ListTaskExecutions(ListTaskExecutionsRequest) returns (ListTaskExecutionsResponse);
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_ENABLED = 1;
+  TASK_STATUS_PAUSED = 2;
+  TASK_STATUS_DISABLED = 3;
+}
+
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  EXECUTION_STATUS_RUNNING = 1;
+  EXECUTION_STATUS_SUCCESS = 2;
+  EXECUTION_STATUS_FAILED = 3;
+  EXECUTION_STATUS_TIMEOUT = 4;
+}
+
+message Task {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string callback_url = 5;
+  int32 timeout_seconds = 6;
+  int32 max_retry = 7;
+  TaskStatus status = 8;
+  google.protobuf.Timestamp next_run_time = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message TaskExecution {
+  int64 id = 1;
+  int64 task_id = 2;
+  ExecutionStatus status = 3;
+  string result = 4;
+  string error_message = 5;
+  int32 retry_count = 6;
+  google.protobuf.Timestamp start_time = 7;
+  google.protobuf.Timestamp end_time = 8;
+}
+
+message CreateTaskRequest {
+  string name = 1;
+  string description = 2;
+  string cron_expression = 3;
+  string callback_url = 4;
+  int32 timeout_seconds = 5;
+  int32 max_retry = 6;
+}
+
+message UpdateTaskRequest {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string callback_url = 5;
+  int32 timeout_seconds = 6;
+  int32 max_retry = 7;
+}
+
+message DeleteTaskRequest {
+  int64 id = 1;
+}
+
+message GetTaskRequest {
+  int64 id = 1;
+}
+
+message ListTasksRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  int32 total = 2;
+}
+
+message TriggerTaskRequest {
+  int64 task_id = 1;
+}
+
+message PauseTaskRequest {
+  int64 task_id = 1;
+}
+
+message ResumeTaskRequest {
+  int64 task_id = 1;
+}
+
+message GetTaskExecutionRequest {
+  int64 execution_id = 1;
+}
+
+message ListTaskExecutionsRequest {
+  int64 task_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListTaskExecutionsResponse {
+  repeated TaskExecution executions = 1;
+  int32 total = 2;
+}
