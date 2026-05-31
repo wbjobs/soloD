@@ -1,0 +1,45 @@
+{
+  "name": "markdown-notes",
+  "version": "0.1.0",
+  "description": "跨平台Markdown笔记与知识库管理工具",
+  "author": "Your Name",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "rehype-katex": "^7.0.0",
+    "rehype-highlight": "^7.0.0",
+    "react-syntax-highlighter": "^15.5.0",
+    "diff": "^5.1.0",
+    "lucide-react": "^0.294.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/react-syntax-highlighter": "^15.5.11",
+    "@types/diff": "^5.0.9",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "tailwindcss": "^3.3.6",
+    "postcss": "^8.4.32",
+    "autoprefixer": "^10.4.16",
+    "@tauri-apps/cli": "^1.5.7",
+    "@tauri-apps/api": "^1.5.2"
+  }
+}
