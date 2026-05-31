@@ -1,0 +1,5 @@
+# hnsw extension
+comment = 'HNSW (Hierarchical Navigable Small World) vector index for PostgreSQL'
+default_version = '1.0'
+module_pathname = '$libdir/hnsw'
+relocatable = true
