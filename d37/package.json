@@ -1,0 +1,44 @@
+{
+  "name": "sensor-desktop-app",
+  "version": "1.0.0",
+  "description": "跨平台传感器数据采集桌面应用",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "keywords": ["electron", "vue", "serialport", "sqlite"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "serialport": "^12.0.0",
+    "csv-writer": "^1.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "concurrently": "^8.2.2",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.1.6",
+    "vue": "^3.4.21",
+    "wait-on": "^7.2.0",
+    "chart.js": "^4.4.1",
+    "vue-chartjs": "^5.3.0"
+  },
+  "build": {
+    "appId": "com.sensor.app",
+    "productName": "传感器数据采集系统",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ]
+  }
+}
