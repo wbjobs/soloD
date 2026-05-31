@@ -1,0 +1,19 @@
+{
+  "name": "image-steganography",
+  "version": "1.0.0",
+  "description": "Image Steganography Tool with Rust WebAssembly",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:wasm": "cd steganography && wasm-pack build --target web --out-dir ../src/pkg"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "svelte": "^4.2.0",
+    "vite": "^5.0.0"
+  }
+}
