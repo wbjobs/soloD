@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>npm 依赖可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .legend-color.vulnerable {
+            background: #e74c3c;
+        }
+
+        .legend-color.safe {
+            background: #2ecc71;
+        }
+
+        .legend-color.collapsed {
+            background: #f39c12;
+        }
+
+        .legend-text {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .stats {
+            margin-top: 15px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+
+        .stats-item {
+            font-size: 13px;
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node circle:hover {
+            stroke: #333;
+            stroke-width: 3px;
+        }
+
+        .node circle.collapsed {
+            stroke: #f39c12;
+            stroke-width: 3px;
+            stroke-dasharray: 5, 5;
+        }
+
+        .node .expand-btn {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: all;
+        }
+
+        .node text {
+            font-size: 10px;
+            pointer-events: none;
+            fill: #333;
+            font-weight: 500;
+        }
+
+        .link {
+            stroke: rgba(255, 255, 255, 0.6);
+            stroke-opacity: 0.6;
+            stroke-width: 1.5px;
+            transition: all 0.3s ease;
+        }
+
+        .link.highlighted {
+            stroke: #e74c3c;
+            stroke-opacity: 1;
+            stroke-width: 4px;
+        }
+
+        .node circle.on-path {
+            stroke: #e74c3c;
+            stroke-width: 5px;
+            filter: drop-shadow(0 0 10px rgba(231, 76, 60, 0.8));
+        }
+
+        .vulnerability-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3f3;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .vulnerability-section h3 {
+            font-size: 14px;
+            color: #c62828;
+            margin-bottom: 10px;
+        }
+
+        .vulnerability-select {
+            margin-bottom: 10px;
+        }
+
+        .vulnerability-select select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #e0e0e0;
+            color: #666;
+        }
+
+        .btn-outline:hover {
+            background: #f0f0f0;
+        }
+
+        .path-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .path-step {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .path-step:not(:last-child)::after {
+            content: '↓';
+            margin-left: 4px;
+            color: #e74c3c;
+        }
+
+        .path-package-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .legend-color.path {
+            background: #e74c3c;
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.6);
+        }
+
+        .detail-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .detail-panel.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .detail-close {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .detail-close:hover {
+            background: #e0e0e0;
+        }
+
+        .detail-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .detail-row {
+            margin-bottom: 12px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .vulnerability-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .vulnerability-badge.vulnerable {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .vulnerability-badge.safe {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .vulnerability-list {
+            margin-top: 15px;
+        }
+
+        .vulnerability-item {
+            padding: 12px;
+            background: #fff3f3;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .vulnerability-id {
+            font-weight: 600;
+            color: #c62828;
+            margin-bottom: 5px;
+        }
+
+        .vulnerability-summary {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 50;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .zoom-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>📦 npm 依赖可视化</h1>
+            
+            <div class="form-group">
+                <label>包名</label>
+                <input type="text" id="packageName" placeholder="例如: react, lodash">
+            </div>
+            
+            <div class="form-group">
+                <label>版本（可选）</label>
+                <input type="text" id="packageVersion" placeholder="例如: 18.2.0">
+            </div>
+            
+            <div class="form-group">
+                <label>初始展开深度</label>
+                <select id="maxDepth">
+                    <option value="1">1 层（仅根节点）</option>
+                    <option value="2" selected>2 层（推荐）</option>
+                    <option value="3">3 层</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" onclick="scrapePackage()">🔍 爬取并可视化</button>
+            <button class="btn btn-secondary" onclick="clearDatabase()">🗑️ 清空数据库</button>
+            
+            <div id="status" class="status"></div>
+            
+            <div class="stats" id="stats" style="display:none;">
+                <div class="stats-item">📊 节点数量: <span id="nodeCount">0</span></div>
+                <div class="stats-item">🔗 连接数量: <span id="linkCount">0</span></div>
+            </div>
+            
+            <div class="vulnerability-section" id="vulnSection" style="display:none;">
+                <h3>⚠️ 漏洞传播分析</h3>
+                <div class="vulnerability-select">
+                    <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">选择漏洞 ID:</label>
+                    <select id="vulnSelect" onchange="onVulnSelectChange()">
+                        <option value="">-- 选择漏洞 --</option>
+                    </select>
+                </div>
+                <button class="btn btn-danger" onclick="findPropagationPath()">🔴 显示传播路径</button>
+                <button class="btn btn-outline" onclick="clearPathHighlight()">⚪ 清除高亮</button>
+                <div id="pathInfo" class="path-info" style="display:none;"></div>
+            </div>
+            
+            <div class="legend">
+                <h3>图例 & 操作</h3>
+                <div class="legend-item">
+                    <div class="legend-color vulnerable"></div>
+                    <span class="legend-text">存在已知漏洞</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color safe"></div>
+                    <span class="legend-text">安全（暂无已知漏洞）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color collapsed"></div>
+                    <span class="legend-text">可展开子依赖</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color path"></div>
+                    <span class="legend-text">漏洞传播路径</span>
+                </div>
+                <div class="hint">
+                    💡 提示:<br>
+                    • 双击节点展开/折叠子依赖<br>
+                    • 单击查看包详情<br>
+                    • 拖拽调整节点位置
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div id="graph"></div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="zoomOut()">-</button>
+                <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay" onclick="closeDetail()"></div>
+    
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div class="detail-title" id="detailTitle">包详情</div>
+            <button class="detail-close" onclick="closeDetail()">×</button>
+        </div>
+        <div class="detail-content" id="detailContent">
+        </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        let svg, simulation, g, zoom;
+        let graphData = { nodes: [], links: [] };
+        let nodeMap = new Map();
+        let expandedNodes = new Set();
+        let node, link;
+        let currentRootPackage = null;
+        let currentRootVersion = null;
+        let allVulnerabilities = [];
+        let highlightedNodeIds = new Set();
+        let highlightedLinkIds = new Set();
+
+        function initGraph() {
+            const container = document.getElementById('graph');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            svg = d3.select('#graph')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            g = svg.append('g');
+
+            window.addEventListener('resize', () => {
+                const newWidth = container.clientWidth;
+                const newHeight = container.clientHeight;
+                svg.attr('width', newWidth).attr('height', newHeight);
+                if (simulation) {
+                    simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+                }
+            });
+        }
+
+        function zoomIn() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+        }
+
+        function zoomOut() {
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+        }
+
+        function resetZoom() {
+            svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function initGraphData(data) {
+            graphData = { nodes: [], links: [] };
+            nodeMap.clear();
+            expandedNodes.clear();
+
+            data.nodes.forEach(n => {
+                if (!nodeMap.has(n.id)) {
+                    const newNode = { ...n, _expanded: false };
+                    graphData.nodes.push(newNode);
+                    nodeMap.set(n.id, newNode);
+                }
+            });
+
+            data.links.forEach(l => {
+                const exists = graphData.links.some(
+                    existing => existing.source === l.source && existing.target === l.target
+                );
+                if (!exists) {
+                    graphData.links.push({ ...l });
+                }
+            });
+
+            if (data.nodes.length > 0) {
+                expandedNodes.add(data.nodes[0].id);
+                const rootNode = nodeMap.get(data.nodes[0].id);
+                if (rootNode) rootNode._expanded = true;
+            }
+
+            updateStats();
+        }
+
+        function mergeGraphData(newData, parentId) {
+            const newNodeIds = new Set();
+
+            newData.nodes.forEach(n => {
+                if (!nodeMap.has(n.id)) {
+                    const newNode = { ...n, _expanded: false };
+                    graphData.nodes.push(newNode);
+                    nodeMap.set(n.id, newNode);
+                }
+                newNodeIds.add(n.id);
+            });
+
+            newData.links.forEach(l => {
+                const exists = graphData.links.some(
+                    existing => existing.source === l.source && existing.target === l.target
+                );
+                if (!exists) {
+                    graphData.links.push({ ...l });
+                }
+            });
+
+            return newNodeIds;
+        }
+
+        function removeSubtree(nodeId) {
+            const toRemove = new Set();
+            const queue = [nodeId];
+
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+                
+                graphData.links.forEach(link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    
+                    if (sourceId === currentId) {
+                        toRemove.add(targetId);
+                        queue.push(targetId);
+                    }
+                });
+            }
+
+            graphData.links = graphData.links.filter(link => {
+                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return sourceId !== nodeId && !toRemove.has(sourceId) && !toRemove.has(targetId);
+            });
+
+            graphData.nodes = graphData.nodes.filter(n => !toRemove.has(n.id) && n.id !== nodeId);
+
+            toRemove.forEach(id => {
+                nodeMap.delete(id);
+                expandedNodes.delete(id);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('stats').style.display = 'block';
+            document.getElementById('nodeCount').textContent = graphData.nodes.length;
+            document.getElementById('linkCount').textContent = graphData.links.length;
+        }
+
+        function renderGraph() {
+            const container = document.getElementById('graph');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            link = g.selectAll('.link')
+                .data(graphData.links, d => `${d.source}-${d.target}`);
+
+            link.exit().remove();
+
+            const linkEnter = link.enter()
+                .append('line')
+                .attr('class', 'link');
+
+            link = linkEnter.merge(link);
+
+            node = g.selectAll('.node')
+                .data(graphData.nodes, d => d.id);
+
+            node.exit().remove();
+
+            const nodeEnter = node.enter()
+                .append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            nodeEnter.append('circle')
+                .attr('r', d => Math.max(12, Math.min(25, 15 + (d.name.length * 0.5))))
+                .attr('fill', d => d.has_vulnerability ? '#e74c3c' : '#2ecc71')
+                .on('click', (event, d) => showNodeDetail(d))
+                .on('dblclick', (event, d) => toggleNode(d));
+
+            nodeEnter.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 4)
+                .text(d => d.name.length > 10 ? d.name.substring(0, 10) + '...' : d.name);
+
+            nodeEnter.append('text')
+                .attr('class', 'expand-btn')
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => Math.max(18, Math.min(31, 21 + (d.name.length * 0.5))))
+                .text(d => d._has_children && !d._expanded ? '+' : '')
+                .style('fill', '#f39c12')
+                .style('font-size', '14px')
+                .on('click', (event, d) => {
+                    event.stopPropagation();
+                    toggleNode(d);
+                });
+
+            node = nodeEnter.merge(node);
+
+            node.select('circle')
+                .attr('class', d => d._has_children && !d._expanded ? 'collapsed' : '')
+                .attr('fill', d => d.has_vulnerability ? '#e74c3c' : '#2ecc71');
+
+            node.select('.expand-btn')
+                .text(d => d._has_children && !d._expanded ? '+' : (d._expanded ? '−' : ''));
+
+            if (simulation) simulation.stop();
+
+            simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100).strength(0.5))
+                .force('charge', d3.forceManyBody().strength(-200))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(40))
+                .alpha(0.3)
+                .restart();
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => typeof d.source === 'object' ? d.source.x : nodeMap.get(d.source)?.x || 0)
+                    .attr('y1', d => typeof d.source === 'object' ? d.source.y : nodeMap.get(d.source)?.y || 0)
+                    .attr('x2', d => typeof d.target === 'object' ? d.target.x : nodeMap.get(d.target)?.x || 0)
+                    .attr('y2', d => typeof d.target === 'object' ? d.target.y : nodeMap.get(d.target)?.y || 0);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            updateStats();
+        }
+
+        async function toggleNode(d) {
+            if (!d._has_children) return;
+
+            const nodeData = nodeMap.get(d.id);
+            if (!nodeData) return;
+
+            if (nodeData._expanded) {
+                nodeData._expanded = false;
+                expandedNodes.delete(d.id);
+                removeSubtree(d.id);
+                renderGraph();
+            } else {
+                showStatus('正在加载子依赖...', 'success');
+                try {
+                    const response = await fetch(`/api/dependencies/${d.name}/${d.version}`);
+                    const depsData = await response.json();
+                    
+                    if (depsData.error) {
+                        showStatus(depsData.error, 'error');
+                        return;
+                    }
+
+                    nodeData._expanded = true;
+                    expandedNodes.add(d.id);
+                    
+                    mergeGraphData(depsData, d.id);
+                    renderGraph();
+                    showStatus(`已加载 ${depsData.nodes.length} 个子依赖`, 'success');
+                } catch (error) {
+                    showStatus('加载失败: ' + error.message, 'error');
+                }
+            }
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        async function scrapePackage() {
+            const packageName = document.getElementById('packageName').value.trim();
+            const packageVersion = document.getElementById('packageVersion').value.trim();
+            const maxDepth = document.getElementById('maxDepth').value;
+
+            if (!packageName) {
+                showStatus('请输入包名', 'error');
+                return;
+            }
+
+            showStatus('正在爬取依赖...', 'success');
+            
+            try {
+                const scrapeResponse = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package_name: packageName,
+                        version: packageVersion || undefined,
+                        max_depth: parseInt(maxDepth)
+                    })
+                });
+
+                const scrapeData = await scrapeResponse.json();
+                
+                if (scrapeData.error) {
+                    showStatus(scrapeData.error, 'error');
+                    return;
+                }
+
+                const actualVersion = packageVersion || scrapeData.version || 'latest';
+                
+                showStatus('正在获取图数据...', 'success');
+                
+                const graphResponse = await fetch(`/api/graph/${packageName}/${actualVersion}?max_level=${parseInt(maxDepth)}`);
+                const newGraphData = await graphResponse.json();
+
+                if (newGraphData.error) {
+                    showStatus(newGraphData.error, 'error');
+                    return;
+                }
+
+                initGraphData(newGraphData);
+                renderGraph();
+                
+                currentRootPackage = packageName;
+                currentRootVersion = actualVersion;
+                
+                await loadVulnerabilities();
+                
+                showStatus(`成功加载 ${newGraphData.nodes.length} 个包，双击节点可展开子依赖`, 'success');
+
+            } catch (error) {
+                showStatus('发生错误: ' + error.message, 'error');
+            }
+        }
+
+        async function showNodeDetail(node) {
+            const detailPanel = document.getElementById('detailPanel');
+            const overlay = document.getElementById('overlay');
+            const detailTitle = document.getElementById('detailTitle');
+            const detailContent = document.getElementById('detailContent');
+
+            detailTitle.textContent = `${node.name} @ ${node.version}`;
+            detailContent.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+            
+            detailPanel.classList.add('show');
+            overlay.classList.add('show');
+
+            try {
+                const [pkgResponse, vulnResponse] = await Promise.all([
+                    fetch(`/api/package/${node.name}/${node.version}`),
+                    fetch(`/api/vulnerability/${node.name}/${node.version}`)
+                ]);
+
+                const pkgData = await pkgResponse.json();
+                const vulnData = await vulnResponse.json();
+
+                let html = '';
+
+                if (pkgData && !pkgData.error) {
+                    html += `
+                        <div class="detail-row">
+                            <div class="detail-label">名称</div>
+                            <div class="detail-value">${pkgData.name || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">版本</div>
+                            <div class="detail-value">${pkgData.version || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">描述</div>
+                            <div class="detail-value">${pkgData.description || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">作者</div>
+                            <div class="detail-value">${pkgData.author || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">许可证</div>
+                            <div class="detail-value">${pkgData.license || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">漏洞状态</div>
+                            <div class="detail-value">
+                                <span class="vulnerability-badge ${vulnData.has_vulnerability ? 'vulnerable' : 'safe'}">
+                                    ${vulnData.has_vulnerability ? '⚠️ 存在漏洞' : '✓ 安全'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">可展开</div>
+                            <div class="detail-value">${node._has_children ? '✅ 有子依赖（双击展开）' : '❌ 无更多依赖'}</div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="detail-row">
+                            <div class="detail-label">名称</div>
+                            <div class="detail-value">${node.name}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">版本</div>
+                            <div class="detail-value">${node.version}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">漏洞状态</div>
+                            <div class="detail-value">
+                                <span class="vulnerability-badge ${node.has_vulnerability ? 'vulnerable' : 'safe'}">
+                                    ${node.has_vulnerability ? '⚠️ 存在漏洞' : '✓ 安全'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">可展开</div>
+                            <div class="detail-value">${node._has_children ? '✅ 有子依赖（双击展开）' : '❌ 无更多依赖'}</div>
+                        </div>
+                    `;
+                }
+
+                if (vulnData.vulnerabilities && vulnData.vulnerabilities.length > 0) {
+                    html += '<div class="vulnerability-list">';
+                    html += '<div class="detail-label">漏洞详情</div>';
+                    for (const vuln of vulnData.vulnerabilities) {
+                        html += `
+                            <div class="vulnerability-item">
+                                <div class="vulnerability-id">${vuln.id}</div>
+                                <div class="vulnerability-summary">${vuln.summary || vuln.details || '暂无详情'}</div>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                }
+
+                detailContent.innerHTML = html;
+
+            } catch (error) {
+                detailContent.innerHTML = `<div class="status error">获取详情失败: ${error.message}</div>`;
+            }
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('show');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        async function clearDatabase() {
+            if (!confirm('确定要清空数据库吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/clear', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showStatus(data.error, 'error');
+                } else {
+                    showStatus('数据库已清空', 'success');
+                    graphData = { nodes: [], links: [] };
+                    nodeMap.clear();
+                    expandedNodes.clear();
+                    g.selectAll('*').remove();
+                    document.getElementById('stats').style.display = 'none';
+                }
+            } catch (error) {
+                showStatus('发生错误: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDetail();
+            }
+        });
+
+        async function loadVulnerabilities() {
+            if (!currentRootPackage) return;
+
+            try {
+                const response = await fetch(`/api/vulnerabilities-in-graph?package_name=${currentRootPackage}&package_version=${currentRootVersion || 'latest'}&max_level=10`);
+                const data = await response.json();
+                
+                allVulnerabilities = data.vulnerabilities || [];
+                
+                const vulnSelect = document.getElementById('vulnSelect');
+                vulnSelect.innerHTML = '<option value="">-- 选择漏洞 --</option>';
+                
+                const vulnMap = new Map();
+                allVulnerabilities.forEach(vuln => {
+                    if (!vulnMap.has(vuln.id)) {
+                        vulnMap.set(vuln.id, vuln);
+                    }
+                });
+                
+                vulnMap.forEach((vuln, id) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = `${id} (${vuln.package_name}@${vuln.package_version})`;
+                    vulnSelect.appendChild(option);
+                });
+                
+                document.getElementById('vulnSection').style.display = vulnMap.size > 0 ? 'block' : 'none';
+                
+            } catch (error) {
+                console.error('加载漏洞列表失败:', error);
+            }
+        }
+
+        function onVulnSelectChange() {
+            clearPathHighlight();
+        }
+
+        async function findPropagationPath() {
+            const vulnId = document.getElementById('vulnSelect').value;
+            if (!vulnId) {
+                showStatus('请选择漏洞 ID', 'error');
+                return;
+            }
+
+            if (!currentRootPackage) {
+                showStatus('请先加载包依赖', 'error');
+                return;
+            }
+
+            showStatus('正在查找最短传播路径...', 'success');
+
+            try {
+                const response = await fetch('/api/propagation-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        root_name: currentRootPackage,
+                        root_version: currentRootVersion,
+                        vuln_id: vulnId
+                    })
+                });
+
+                const pathData = await response.json();
+
+                if (!pathData.found) {
+                    showStatus(pathData.message || '未找到传播路径', 'error');
+                    return;
+                }
+
+                highlightPath(pathData);
+                showStatus(`找到最短传播路径，经过 ${pathData.path_length} 层依赖`, 'success');
+
+            } catch (error) {
+                showStatus('查找路径失败: ' + error.message, 'error');
+            }
+        }
+
+        function highlightPath(pathData) {
+            clearPathHighlight();
+
+            const pathNodeIds = new Set(pathData.nodes.map(n => n.id));
+            const pathLinks = new Set(pathData.links.map(l => `${l.source}-${l.target}`));
+
+            highlightedNodeIds = pathNodeIds;
+            highlightedLinkIds = pathLinks;
+
+            node.select('circle')
+                .attr('class', d => {
+                    let classes = [];
+                    if (d._has_children && !d._expanded) classes.push('collapsed');
+                    if (pathNodeIds.has(d.id)) classes.push('on-path');
+                    return classes.join(' ');
+                });
+
+            link
+                .attr('class', d => {
+                    const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+                    const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+                    const linkId = `${sourceId}-${targetId}`;
+                    return pathLinks.has(linkId) ? 'link highlighted' : 'link';
+                });
+
+            const pathInfo = document.getElementById('pathInfo');
+            let pathHtml = `<div style="font-weight: 600; margin-bottom: 8px;">🔴 漏洞传播路径: ${pathData.path_length} 层</div>`;
+            pathHtml += '<div style="color: #c62828; font-size: 11px; margin-bottom: 8px;">' + (pathData.vulnerability_id || '') + '</div>';
+            
+            pathData.nodes.forEach((node, index) => {
+                pathHtml += `
+                    <div class="path-step">
+                        <span class="path-package-name">${node.name}</span>
+                        <span style="color: #888; margin-left: 4px;">@${node.version}</span>
+                    </div>
+                `;
+            });
+            
+            pathInfo.innerHTML = pathHtml;
+            pathInfo.style.display = 'block';
+        }
+
+        function clearPathHighlight() {
+            highlightedNodeIds.clear();
+            highlightedLinkIds.clear();
+
+            if (node) {
+                node.select('circle')
+                    .attr('class', d => d._has_children && !d._expanded ? 'collapsed' : '');
+            }
+
+            if (link) {
+                link.attr('class', 'link');
+            }
+
+            document.getElementById('pathInfo').style.display = 'none';
+            document.getElementById('vulnSelect').value = '';
+        }
+
+        initGraph();
+    </script>
+</body>
+</html>
