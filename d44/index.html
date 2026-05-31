@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资金流向图谱</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="toolbar">
+            <div class="toolbar-left">
+                <h1>💰 资金流向图谱</h1>
+            </div>
+            <div class="toolbar-right">
+                <button id="importBtn" class="btn btn-primary">
+                    📁 导入CSV
+                </button>
+                <button id="saveBtn" class="btn btn-secondary">
+                    💾 保存图谱
+                </button>
+                <button id="loadBtn" class="btn btn-secondary">
+                    📂 加载图谱
+                </button>
+                <button id="clearBtn" class="btn btn-danger">
+                    🗑️ 清空
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="panel">
+                    <h3>📊 数据统计</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">账户节点数:</span>
+                            <span id="nodeCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">交易边数:</span>
+                            <span id="edgeCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">总交易金额:</span>
+                            <span id="totalAmount" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>⚙️ CSV配置</h3>
+                    <div class="config-form">
+                        <div class="form-group">
+                            <label>付款方列名:</label>
+                            <input type="text" id="payerColumn" value="付款方" placeholder="付款方列名">
+                        </div>
+                        <div class="form-group">
+                            <label>收款方列名:</label>
+                            <input type="text" id="payeeColumn" value="收款方" placeholder="收款方列名">
+                        </div>
+                        <div class="form-group">
+                            <label>金额列名:</label>
+                            <input type="text" id="amountColumn" value="金额" placeholder="金额列名">
+                        </div>
+                        <div class="form-group">
+                            <label>交易日期列名:</label>
+                            <input type="text" id="dateColumn" value="交易日期" placeholder="交易日期列名">
+                        </div>
+                        <div class="form-group">
+                            <label>交易备注列名:</label>
+                            <input type="text" id="remarkColumn" value="备注" placeholder="备注列名">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🎨 布局设置</h3>
+                    <div class="layout-controls">
+                        <button id="layoutCircle" class="btn btn-small">圆形布局</button>
+                        <button id="layoutGrid" class="btn btn-small">网格布局</button>
+                        <button id="layoutConcentric" class="btn btn-small">同心布局</button>
+                        <button id="layoutCose" class="btn btn-small">力导向布局</button>
+                    </div>
+                </div>
+
+                <div class="panel" id="filterPanel" style="display: none;">
+                    <h3>🔧 性能优化</h3>
+                    <div class="filter-controls">
+                        <div class="form-group">
+                            <label>显示 Top N 节点:</label>
+                            <input type="number" id="topNFilter" value="1000" min="100" step="100">
+                        </div>
+                        <button id="applyFilter" class="btn btn-small">应用过滤</button>
+                        <button id="showAllNodes" class="btn btn-small">显示全部</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>⚠️ 风险检测</h3>
+                    <div class="risk-controls">
+                        <button id="detectRisk" class="btn btn-small btn-danger">检测环路交易</button>
+                        <button id="clearRisk" class="btn btn-small">清除高亮</button>
+                    </div>
+                    <div class="risk-stats" id="riskStats" style="margin-top: 12px; display: none;">
+                        <div class="stat-item">
+                            <span class="stat-label">发现环路:</span>
+                            <span id="cycleCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">总风险金额:</span>
+                            <span id="totalRiskAmount" class="stat-value" style="color: #ef4444;">¥0</span>
+                        </div>
+                    </div>
+                    <div class="risk-list" id="riskList" style="margin-top: 12px; max-height: 300px; overflow-y: auto;">
+                        <p class="empty-text">点击"检测环路交易"开始分析</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🔍 节点信息</h3>
+                    <div id="nodeInfo" class="node-info">
+                        <p class="empty-text">点击节点查看详情</p>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="graph-container">
+                <div id="cy"></div>
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h2>暂无数据</h2>
+                    <p>点击"导入CSV"按钮开始分析您的交易流水</p>
+                    <p class="hint">支持的CSV格式: 付款方, 收款方, 金额, 交易日期, 备注</p>
+                </div>
+                <div id="loadingState" class="loading-state hidden">
+                    <div class="spinner"></div>
+                    <p id="loadingText">正在加载数据...</p>
+                </div>
+                <div id="performanceHint" class="performance-hint hidden">
+                    ⚡ 大数据模式已启用 - 缩放以查看更多详情
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
