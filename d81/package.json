@@ -1,0 +1,16 @@
+{
+  "name": "p2p-video-system",
+  "version": "1.0.0",
+  "description": "P2P video transmission system with WebCodecs and WebGL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["webrtc", "webcodecs", "webgl", "udp", "p2p"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.0"
+  }
+}
