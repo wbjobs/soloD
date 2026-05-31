@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      retry-backoff-ms: 1000
+      enable-idempotence: true
+      properties:
+        max.in.flight.requests.per.connection: 5
+        compression.type: snappy
+        linger.ms: 10
+        batch.size: 65536
+    consumer:
+      group-id: finance-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        max.poll.records: 500
+        fetch.min.bytes: 1024
+        fetch.max.wait.ms: 500
+        enable.auto.commit: false
+        auto.offset.reset: latest
+    listener:
+      ack-mode: manual
+      concurrency: 2
+      poll-timeout: 3000
+
+kafka:
+  topics:
+    tick-data: tick-data
+    aggregated-data: aggregated-data
+    alerts: alerts
+
+simulation:
+  tick-interval-ms: 100
+  stocks: AAPL,GOOGL,MSFT,AMZN,BABA
+
+logging:
+  level:
+    com.finance: INFO
+    org.springframework.kafka: WARN
+
