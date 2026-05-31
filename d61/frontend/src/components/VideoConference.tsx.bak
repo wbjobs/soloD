@@ -1,0 +1,99 @@
+import React, { useRef, useEffect } from 'react';
+import { PeerConnection } from '../types';
+
+interface VideoConferenceProps {
+  localStream: MediaStream | null;
+  peerConnections: Map<string, PeerConnection>;
+  roomId: string;
+}
+
+export const VideoConference: React.FC<VideoConferenceProps> = ({
+  localStream,
+  peerConnections,
+  roomId,
+}) => {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  const videoCount = 1 + peerConnections.size;
+  const getGridCols = () => {
+    if (videoCount <= 2) return 'grid-cols-2';
+    if (videoCount <= 4) return 'grid-cols-2';
+    if (videoCount <= 6) return 'grid-cols-3';
+    return 'grid-cols-4';
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-lg shadow-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-white">视频会议室</h2>
+        {roomId && (
+          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+            房间: {roomId}
+          </span>
+        )}
+      </div>
+
+      <div className={`grid ${getGridCols()} gap-4`}>
+        <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded text-sm">
+            我
+          </div>
+        </div>
+
+        {Array.from(peerConnections.values()).map((pc) => (
+          <div key={pc.id} className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
+            <RemoteVideo stream={pc.streams[0]} name={pc.name} />
+          </div>
+        ))}
+
+        {!localStream && peerConnections.size === 0 && (
+          <div className="col-span-full flex items-center justify-center h-64">
+            <p className="text-gray-400 text-lg">请加入房间开始会议</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface RemoteVideoProps {
+  stream: MediaStream | undefined;
+  name: string;
+}
+
+const RemoteVideo: React.FC<RemoteVideoProps> = ({ stream, name }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded text-sm">
+        {name}
+      </div>
+    </>
+  );
+};

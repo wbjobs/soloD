@@ -1,0 +1,234 @@
+import { NetworkStats } from '../types';
+
+interface ValidStats {
+  packetLossRate: number;
+  rtt: number;
+  availableBandwidth: number;
+  timestamp: number;
+}
+
+export class NetworkMonitor {
+  private pc: RTCPeerConnection | null = null;
+  private statsInterval: NodeJS.Timeout | null = null;
+  private lastBytesSent: number = 0;
+  private lastBytesReceived: number = 0;
+  private lastTimestamp: number = 0;
+  private validStatsHistory: ValidStats[] = [];
+
+  setPeerConnection(pc: RTCPeerConnection): void {
+    this.pc = pc;
+  }
+
+  startMonitoring(callback: (stats: NetworkStats) => void, interval: number = 500): void {
+    this.stopMonitoring();
+    this.lastTimestamp = Date.now();
+    
+    this.statsInterval = setInterval(async () => {
+      if (!this.pc) return;
+      
+      try {
+        const stats = await this.pc.getStats();
+        const networkStats = this.analyzeStats(stats);
+        callback(networkStats);
+      } catch (error) {
+        console.error('Error collecting RTC stats:', error);
+      }
+    }, interval);
+  }
+
+  stopMonitoring(): void {
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+    }
+  }
+
+  private isValidNumber(value: number | undefined | null): boolean {
+    return value !== undefined && value !== null && !isNaN(value) && isFinite(value);
+  }
+
+  private addValidStats(stats: ValidStats): void {
+    this.validStatsHistory.push(stats);
+    if (this.validStatsHistory.length > 3) {
+      this.validStatsHistory.shift();
+    }
+  }
+
+  private getWeightedAverage(): ValidStats | null {
+    if (this.validStatsHistory.length === 0) {
+      return null;
+    }
+
+    const weights = [0.5, 0.3, 0.2];
+    let totalWeight = 0;
+    let weightedPacketLossRate = 0;
+    let weightedRtt = 0;
+    let weightedAvailableBandwidth = 0;
+
+    for (let i = 0; i < this.validStatsHistory.length; i++) {
+      const weight = weights[i] || 0.2;
+      const stats = this.validStatsHistory[this.validStatsHistory.length - 1 - i];
+      weightedPacketLossRate += stats.packetLossRate * weight;
+      weightedRtt += stats.rtt * weight;
+      weightedAvailableBandwidth += stats.availableBandwidth * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight === 0) {
+      return this.validStatsHistory[this.validStatsHistory.length - 1];
+    }
+
+    return {
+      packetLossRate: weightedPacketLossRate / totalWeight,
+      rtt: weightedRtt / totalWeight,
+      availableBandwidth: weightedAvailableBandwidth / totalWeight,
+      timestamp: Date.now(),
+    };
+  }
+
+  private analyzeStats(stats: RTCStatsReport): NetworkStats {
+    let packetLossRate: number | undefined = 0;
+    let rtt: number | undefined = 0;
+    let availableBandwidth: number | undefined = 1000000;
+
+    const now = Date.now();
+    const timeDiff = (now - this.lastTimestamp) / 1000;
+
+    for (const report of stats.values()) {
+      if (report.type === 'candidate-pair' && report.nominated) {
+        if (this.isValidNumber(report.currentRoundTripTime)) {
+          rtt = report.currentRoundTripTime * 1000;
+        }
+        if (this.isValidNumber(report.availableOutgoingBitrate) && report.availableOutgoingBitrate > 0) {
+          availableBandwidth = report.availableOutgoingBitrate;
+        }
+      }
+
+      if (report.type === 'outbound-rtp' && report.kind === 'video') {
+        if (this.isValidNumber(report.packetsSent) && 
+            this.isValidNumber(report.packetsLost) &&
+            report.packetsSent + report.packetsLost > 0) {
+          const totalPackets = report.packetsSent + report.packetsLost;
+          packetLossRate = report.packetsLost / totalPackets;
+        }
+
+        if (timeDiff > 0 && this.lastBytesSent > 0 && 
+            this.isValidNumber(report.bytesSent) && 
+            report.bytesSent >= this.lastBytesSent) {
+          const bitrate = ((report.bytesSent - this.lastBytesSent) * 8) / timeDiff;
+          if (bitrate > 0 && availableBandwidth === 1000000) {
+            availableBandwidth = bitrate * 1.5;
+          }
+        }
+        
+        if (this.isValidNumber(report.bytesSent)) {
+          this.lastBytesSent = report.bytesSent;
+        }
+      }
+
+      if (report.type === 'inbound-rtp' && report.kind === 'video') {
+        if (this.isValidNumber(report.packetsReceived) && 
+            this.isValidNumber(report.packetsLost) &&
+            report.packetsReceived + report.packetsLost > 0) {
+          const totalPackets = report.packetsReceived + report.packetsLost;
+          const lossRate = report.packetsLost / totalPackets;
+          if (!isNaN(lossRate) && isFinite(lossRate)) {
+            packetLossRate = Math.max(packetLossRate || 0, lossRate);
+          }
+        }
+
+        if (timeDiff > 0 && this.lastBytesReceived > 0 && 
+            this.isValidNumber(report.bytesReceived) && 
+            report.bytesReceived >= this.lastBytesReceived) {
+          const bitrate = ((report.bytesReceived - this.lastBytesReceived) * 8) / timeDiff;
+          if (bitrate > 0 && availableBandwidth === 1000000) {
+            availableBandwidth = bitrate * 1.5;
+          }
+        }
+        
+        if (this.isValidNumber(report.bytesReceived)) {
+          this.lastBytesReceived = report.bytesReceived;
+        }
+      }
+
+      if (report.type === 'remote-inbound-rtp') {
+        if (this.isValidNumber(report.roundTripTime)) {
+          const remoteRtt = report.roundTripTime * 1000;
+          if (!isNaN(remoteRtt) && isFinite(remoteRtt)) {
+            rtt = Math.max(rtt || 0, remoteRtt);
+          }
+        }
+      }
+    }
+
+    this.lastTimestamp = now;
+
+    const hasInvalidData = !this.isValidNumber(packetLossRate) || 
+                          !this.isValidNumber(rtt) || 
+                          !this.isValidNumber(availableBandwidth);
+
+    if (hasInvalidData) {
+      console.warn('[NetworkMonitor] 检测到无效统计数据:', {
+        packetLossRate,
+        rtt,
+        availableBandwidth,
+      });
+
+      const weightedAvg = this.getWeightedAverage();
+      if (weightedAvg) {
+        console.warn('[NetworkMonitor] 使用最近3次有效值的加权平均:', weightedAvg);
+        return {
+          ...weightedAvg,
+          timestamp: now,
+        };
+      } else {
+        console.warn('[NetworkMonitor] 无历史有效数据，使用默认值');
+        return {
+          packetLossRate: 0,
+          rtt: 0,
+          availableBandwidth: 1000000,
+          timestamp: now,
+        };
+      }
+    }
+
+    const validStats: ValidStats = {
+      packetLossRate: Math.min(Math.max(packetLossRate!, 0), 1),
+      rtt: Math.max(rtt!, 0),
+      availableBandwidth: Math.max(availableBandwidth!, 100000),
+      timestamp: now,
+    };
+
+    this.addValidStats(validStats);
+
+    return validStats;
+  }
+
+  simulateNetworkConditions(condition: 'good' | 'medium' | 'poor'): NetworkStats {
+    const now = Date.now();
+    
+    switch (condition) {
+      case 'good':
+        return {
+          packetLossRate: 0.005 + Math.random() * 0.01,
+          rtt: 30 + Math.random() * 40,
+          availableBandwidth: 3000000 + Math.random() * 2000000,
+          timestamp: now,
+        };
+      case 'medium':
+        return {
+          packetLossRate: 0.02 + Math.random() * 0.03,
+          rtt: 100 + Math.random() * 100,
+          availableBandwidth: 800000 + Math.random() * 500000,
+          timestamp: now,
+        };
+      case 'poor':
+        return {
+          packetLossRate: 0.05 + Math.random() * 0.08,
+          rtt: 250 + Math.random() * 200,
+          availableBandwidth: 200000 + Math.random() * 200000,
+          timestamp: now,
+        };
+    }
+  }
+}

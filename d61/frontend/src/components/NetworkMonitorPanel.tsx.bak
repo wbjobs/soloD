@@ -1,0 +1,195 @@
+import React from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { NetworkStats, BitrateStrategy, BandwidthHistory } from '../types';
+
+interface NetworkMonitorPanelProps {
+  networkStats: NetworkStats | null;
+  bitrateStrategy: BitrateStrategy | null;
+  gccState: string;
+  bandwidthHistory: BandwidthHistory[];
+}
+
+export const NetworkMonitorPanel: React.FC<NetworkMonitorPanelProps> = ({
+  networkStats,
+  bitrateStrategy,
+  gccState,
+  bandwidthHistory,
+}) => {
+  const formatBitrate = (bps: number): string => {
+    if (bps >= 1000000) {
+      return `${(bps / 1000000).toFixed(2)} Mbps`;
+    } else if (bps >= 1000) {
+      return `${(bps / 1000).toFixed(2)} kbps`;
+    }
+    return `${bps} bps`;
+  };
+
+  const chartData = bandwidthHistory.map((item, index) => ({
+    ...item,
+    time: new Date(item.timestamp).toLocaleTimeString(),
+    packetLossPercent: (item.packetLossRate * 100).toFixed(2),
+    availableBandwidthMbps: (item.availableBandwidth / 1000000).toFixed(2),
+    recommendedBitrateMbps: (item.recommendedBitrate / 1000000).toFixed(2),
+  }));
+
+  const getGccStateColor = (state: string): string => {
+    switch (state) {
+      case 'increase':
+        return 'text-green-600';
+      case 'decrease':
+        return 'text-red-600';
+      default:
+        return 'text-yellow-600';
+    }
+  };
+
+  const getQualityLevelColor = (level: string): string => {
+    switch (level) {
+      case 'high':
+        return 'text-green-600';
+      case 'medium':
+        return 'text-yellow-600';
+      case 'low':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-4 text-gray-800">网络状态监控</h2>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="text-sm text-blue-600 mb-1">可用带宽</div>
+          <div className="text-2xl font-bold text-blue-800">
+            {networkStats ? formatBitrate(networkStats.availableBandwidth) : '--'}
+          </div>
+        </div>
+        
+        <div className="bg-orange-50 rounded-lg p-4">
+          <div className="text-sm text-orange-600 mb-1">丢包率</div>
+          <div className="text-2xl font-bold text-orange-800">
+            {networkStats ? `${(networkStats.packetLossRate * 100).toFixed(2)}%` : '--'}
+          </div>
+        </div>
+        
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="text-sm text-purple-600 mb-1">RTT</div>
+          <div className="text-2xl font-bold text-purple-800">
+            {networkStats ? `${networkStats.rtt.toFixed(0)} ms` : '--'}
+          </div>
+        </div>
+        
+        <div className="bg-green-50 rounded-lg p-4">
+          <div className="text-sm text-green-600 mb-1">GCC 状态</div>
+          <div className={`text-2xl font-bold ${getGccStateColor(gccState)}`}>
+            {gccState === 'increase' ? '↑ 提升' : gccState === 'decrease' ? '↓ 降低' : '→ 稳定'}
+          </div>
+        </div>
+      </div>
+
+      {bitrateStrategy && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 text-gray-700">当前码率策略</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm text-gray-600">目标码率</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {formatBitrate(bitrateStrategy.targetBitrate)}
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm text-gray-600">分辨率</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {bitrateStrategy.resolution.width}x{bitrateStrategy.resolution.height}
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm text-gray-600">帧率</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {bitrateStrategy.frameRate} fps
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm text-gray-600">质量等级</div>
+              <div className={`text-lg font-semibold ${getQualityLevelColor(bitrateStrategy.qualityLevel)}`}>
+                {bitrateStrategy.qualityLevel === 'high' ? '高清' : bitrateStrategy.qualityLevel === 'medium' ? '标清' : '流畅'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chartData.length > 0 && (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-700">带宽变化趋势</h3>
+            <div className="h-48 bg-gray-50 rounded-lg p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} unit=" Mbps" />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="availableBandwidthMbps" 
+                    stroke="#3B82F6" 
+                    name="可用带宽" 
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="recommendedBitrateMbps" 
+                    stroke="#10B981" 
+                    name="推荐码率" 
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-700">网络质量指标</h3>
+            <div className="h-48 bg-gray-50 rounded-lg p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10 }} unit="%" />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} unit=" ms" />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="packetLossPercent" 
+                    stroke="#EF4444" 
+                    name="丢包率" 
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="rtt" 
+                    stroke="#8B5CF6" 
+                    name="RTT" 
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

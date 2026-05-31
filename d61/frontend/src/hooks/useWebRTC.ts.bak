@@ -1,0 +1,316 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { NetworkStats, BitrateStrategy, PeerConnection, BandwidthHistory } from '../types';
+import { NetworkMonitor } from '../utils/networkMonitor';
+import { 
+  applyBitrateStrategy, 
+  getSimulcastLayers, 
+  selectDownstreamLayer,
+  GCCControllerSimulator 
+} from '../utils/bitrateController';
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
+
+export function useWebRTC() {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [peerConnections, setPeerConnections] = useState<Map<string, PeerConnection>>(new Map());
+  const [participantId, setParticipantId] = useState<string>('');
+  const [roomId, setRoomId] = useState<string>('');
+  const [isConnected, setIsConnected] = useState(false);
+  
+  const [networkStats, setNetworkStats] = useState<NetworkStats | null>(null);
+  const [bitrateStrategy, setBitrateStrategy] = useState<BitrateStrategy | null>(null);
+  const [gccState, setGccState] = useState<string>('stable');
+  const [bandwidthHistory, setBandwidthHistory] = useState<BandwidthHistory[]>([]);
+  
+  const networkMonitorRef = useRef<NetworkMonitor>(new NetworkMonitor());
+  const gccSimulatorRef = useRef<GCCControllerSimulator>(new GCCControllerSimulator());
+  const localVideoSenderRef = useRef<RTCRtpSender | null>(null);
+
+  const initializeSocket = useCallback(() => {
+    const newSocket = io('http://localhost:3001');
+    
+    newSocket.on('connect', () => {
+      console.log('Connected to signaling server');
+      setIsConnected(true);
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from signaling server');
+      setIsConnected(false);
+    });
+
+    newSocket.on('room-joined', ({ participantId: id, participants }) => {
+      setParticipantId(id);
+    });
+
+    newSocket.on('participant-joined', async ({ id, name }) => {
+      await createPeerConnection(id, name, true);
+    });
+
+    newSocket.on('participant-left', ({ participantId: id }) => {
+      setPeerConnections(prev => {
+        const newMap = new Map(prev);
+        const pc = newMap.get(id);
+        if (pc) {
+          pc.connection.close();
+        }
+        newMap.delete(id);
+        return newMap;
+      });
+    });
+
+    newSocket.on('offer', async ({ offer, fromParticipantId }) => {
+      await handleOffer(offer, fromParticipantId);
+    });
+
+    newSocket.on('answer', async ({ answer, fromParticipantId }) => {
+      await handleAnswer(answer, fromParticipantId);
+    });
+
+    newSocket.on('ice-candidate', async ({ candidate, fromParticipantId }) => {
+      await handleIceCandidate(candidate, fromParticipantId);
+    });
+
+    newSocket.on('bitrate-strategy', ({ strategy, gccState: state }) => {
+      setBitrateStrategy(strategy);
+      setGccState(state);
+      
+      if (localVideoSenderRef.current) {
+        applyBitrateStrategy(localVideoSenderRef.current, strategy);
+      }
+
+      if (networkStats) {
+        setBandwidthHistory(prev => {
+          const newHistory = [...prev, {
+            timestamp: Date.now(),
+            availableBandwidth: networkStats.availableBandwidth,
+            packetLossRate: networkStats.packetLossRate,
+            rtt: networkStats.rtt,
+            recommendedBitrate: strategy.targetBitrate,
+            qualityLevel: strategy.qualityLevel,
+          }];
+          return newHistory.slice(-50);
+        });
+      }
+    });
+
+    setSocket(newSocket);
+    return newSocket;
+  }, []);
+
+  const createPeerConnection = useCallback(async (
+    remoteId: string,
+    remoteName: string,
+    isInitiator: boolean
+  ): Promise<RTCPeerConnection> => {
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        const sender = pc.addTrack(track, localStream);
+        if (track.kind === 'video') {
+          const parameters = sender.getParameters();
+          if (!parameters.encodings) {
+            parameters.encodings = [];
+          }
+          
+          const simulcastLayers = getSimulcastLayers();
+          parameters.encodings = simulcastLayers.map(layer => ({
+            rid: layer.rid,
+            active: true,
+            scaleResolutionDownBy: layer.scaleResolutionDownBy,
+            maxBitrate: layer.maxBitrate,
+            maxFramerate: layer.maxFramerate,
+          }));
+          
+          sender.setParameters(parameters).catch(console.error);
+        }
+      });
+    }
+
+    pc.ontrack = (event) => {
+      setPeerConnections(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(remoteId);
+        if (existing) {
+          existing.streams = event.streams;
+        } else {
+          newMap.set(remoteId, {
+            id: remoteId,
+            name: remoteName,
+            connection: pc,
+            streams: event.streams,
+          });
+        }
+        return newMap;
+      });
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socket) {
+        socket.emit('ice-candidate', {
+          targetParticipantId: remoteId,
+          candidate: event.candidate,
+          fromParticipantId: participantId,
+        });
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log('Connection state:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        networkMonitorRef.current.setPeerConnection(pc);
+      }
+    };
+
+    setPeerConnections(prev => {
+      const newMap = new Map(prev);
+      newMap.set(remoteId, {
+        id: remoteId,
+        name: remoteName,
+        connection: pc,
+        streams: [],
+      });
+      return newMap;
+    });
+
+    if (isInitiator) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      if (socket) {
+        socket.emit('offer', {
+          targetParticipantId: remoteId,
+          offer,
+          fromParticipantId: participantId,
+        });
+      }
+    }
+
+    return pc;
+  }, [localStream, socket, participantId]);
+
+  const handleOffer = useCallback(async (offer: RTCSessionDescriptionInit, fromId: string) => {
+    const pc = await createPeerConnection(fromId, 'Remote', false);
+    await pc.setRemoteDescription(offer);
+    
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    
+    if (socket) {
+      socket.emit('answer', {
+        targetParticipantId: fromId,
+        answer,
+        fromParticipantId: participantId,
+      });
+    }
+  }, [createPeerConnection, socket, participantId]);
+
+  const handleAnswer = useCallback(async (answer: RTCSessionDescriptionInit, fromId: string) => {
+    const pc = peerConnections.get(fromId)?.connection;
+    if (pc) {
+      await pc.setRemoteDescription(answer);
+    }
+  }, [peerConnections]);
+
+  const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit, fromId: string) => {
+    const pc = peerConnections.get(fromId)?.connection;
+    if (pc) {
+      await pc.addIceCandidate(candidate);
+    }
+  }, [peerConnections]);
+
+  const joinRoom = useCallback(async (room: string, name: string) => {
+    if (!socket) {
+      initializeSocket();
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720 },
+        audio: true,
+      });
+      
+      setLocalStream(stream);
+      setRoomId(room);
+
+      socket?.emit('join-room', { roomId: room, name });
+
+      networkMonitorRef.current.startMonitoring((stats) => {
+        setNetworkStats(stats);
+        
+        const gccResult = gccSimulatorRef.current.update(stats);
+        
+        if (socket && participantId) {
+          socket.emit('network-stats', {
+            participantId,
+            roomId: room,
+            stats: {
+              ...stats,
+              availableBandwidth: gccResult.bitrate,
+            },
+          });
+        }
+
+        const targetLayer = selectDownstreamLayer(stats.availableBandwidth, stats.packetLossRate);
+        console.log('Recommended downstream layer:', targetLayer);
+      }, 500);
+
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+    }
+  }, [socket, initializeSocket, participantId]);
+
+  const leaveRoom = useCallback(() => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+
+    peerConnections.forEach(pc => {
+      pc.connection.close();
+    });
+    setPeerConnections(new Map());
+
+    if (socket && participantId) {
+      socket.emit('leave-room', { participantId, roomId });
+    }
+
+    networkMonitorRef.current.stopMonitoring();
+    setRoomId('');
+    setParticipantId('');
+    setNetworkStats(null);
+    setBitrateStrategy(null);
+    setBandwidthHistory([]);
+  }, [localStream, peerConnections, socket, participantId, roomId]);
+
+  useEffect(() => {
+    return () => {
+      leaveRoom();
+      socket?.disconnect();
+    };
+  }, [leaveRoom, socket]);
+
+  return {
+    socket,
+    localStream,
+    peerConnections,
+    participantId,
+    roomId,
+    isConnected,
+    networkStats,
+    bitrateStrategy,
+    gccState,
+    bandwidthHistory,
+    initializeSocket,
+    joinRoom,
+    leaveRoom,
+  };
+}

@@ -1,0 +1,140 @@
+import { BitrateStrategy, NetworkStats } from '../types';
+
+const SIMULCAST_LAYERS = [
+  { rid: 'high', scaleResolutionDownBy: 1, maxBitrate: 2500000, maxFramerate: 30 },
+  { rid: 'medium', scaleResolutionDownBy: 2, maxBitrate: 1000000, maxFramerate: 24 },
+  { rid: 'low', scaleResolutionDownBy: 4, maxBitrate: 300000, maxFramerate: 15 },
+];
+
+export function getSimulcastLayers() {
+  return SIMULCAST_LAYERS;
+}
+
+export async function applyBitrateStrategy(
+  sender: RTCRtpSender,
+  strategy: BitrateStrategy
+): Promise<void> {
+  const parameters = sender.getParameters();
+  
+  if (!parameters.encodings) {
+    parameters.encodings = [{}];
+  }
+
+  parameters.encodings.forEach((encoding, index) => {
+    const layer = SIMULCAST_LAYERS[index];
+    if (layer) {
+      encoding.rid = layer.rid;
+      encoding.scaleResolutionDownBy = layer.scaleResolutionDownBy;
+      encoding.maxFramerate = layer.maxFramerate;
+      
+      const layerBitrateRatio = layer.maxBitrate / SIMULCAST_LAYERS[0].maxBitrate;
+      encoding.maxBitrate = Math.round(strategy.targetBitrate * layerBitrateRatio);
+      
+      encoding.active = layer.maxBitrate <= strategy.targetBitrate * 1.2;
+    }
+  });
+
+  try {
+    await sender.setParameters(parameters);
+    console.log('Applied bitrate strategy:', strategy);
+  } catch (error) {
+    console.error('Failed to set RTP parameters:', error);
+  }
+}
+
+export function selectDownstreamLayer(
+  availableBandwidth: number,
+  packetLossRate: number
+): string {
+  if (packetLossRate > 0.08 || availableBandwidth < 400000) {
+    return 'low';
+  } else if (packetLossRate > 0.03 || availableBandwidth < 1200000) {
+    return 'medium';
+  } else {
+    return 'high';
+  }
+}
+
+export async function switchReceiverLayer(
+  receiver: RTCRtpReceiver,
+  targetLayer: string
+): Promise<void> {
+  const parameters = receiver.getParameters();
+  
+  if (parameters.encodings) {
+    parameters.encodings.forEach((encoding) => {
+      encoding.active = encoding.rid === targetLayer;
+    });
+    
+    try {
+      await receiver.setParameters(parameters);
+      console.log('Switched to layer:', targetLayer);
+    } catch (error) {
+      console.error('Failed to switch receiver layer:', error);
+    }
+  }
+}
+
+export function estimateAvailableBandwidth(
+  stats: NetworkStats,
+  history: NetworkStats[]
+): number {
+  const recentStats = history.slice(-10);
+  const avgBandwidth = recentStats.length > 0
+    ? recentStats.reduce((sum, s) => sum + s.availableBandwidth, 0) / recentStats.length
+    : stats.availableBandwidth;
+
+  const lossPenalty = stats.packetLossRate * 2000000;
+  const rttPenalty = Math.max(0, (stats.rtt - 50) * 2000);
+
+  return Math.max(100000, avgBandwidth - lossPenalty - rttPenalty);
+}
+
+export class GCCControllerSimulator {
+  private state: 'increase' | 'decrease' | 'stable' = 'stable';
+  private currentBitrate: number = 1000000;
+  private history: NetworkStats[] = [];
+
+  update(stats: NetworkStats): { bitrate: number; state: string } {
+    this.history.push(stats);
+    if (this.history.length > 20) {
+      this.history.shift();
+    }
+
+    const lossTrend = this.calculateTrend('packetLossRate');
+    const rttTrend = this.calculateTrend('rtt');
+
+    if (stats.packetLossRate > 0.1 || stats.rtt > 300 || (lossTrend > 0 && rttTrend > 0)) {
+      this.state = 'decrease';
+      this.currentBitrate *= Math.max(0.5, 1 - stats.packetLossRate * 3 - stats.rtt / 1000);
+    } else if (stats.packetLossRate < 0.02 && stats.rtt < 100 && lossTrend <= 0) {
+      this.state = 'increase';
+      this.currentBitrate = Math.min(this.currentBitrate * 1.08, stats.availableBandwidth * 0.9, 5000000);
+    } else {
+      this.state = 'stable';
+    }
+
+    this.currentBitrate = Math.max(100000, Math.min(this.currentBitrate, 5000000));
+
+    return {
+      bitrate: this.currentBitrate,
+      state: this.state,
+    };
+  }
+
+  private calculateTrend(field: keyof NetworkStats): number {
+    if (this.history.length < 10) return 0;
+    
+    const recent = this.history.slice(-5);
+    const older = this.history.slice(-10, -5);
+    
+    const recentAvg = recent.reduce((sum, s) => sum + (s[field] as number), 0) / recent.length;
+    const olderAvg = older.reduce((sum, s) => sum + (s[field] as number), 0) / older.length;
+    
+    return recentAvg - olderAvg;
+  }
+
+  getBitrate(): number {
+    return this.currentBitrate;
+  }
+}
