@@ -1,0 +1,15 @@
+{
+  "name": "tray-tooltip-app",
+  "outputfilename": "tray-tooltip-app",
+  "author": {
+    "name": "Developer",
+    "email": "developer@example.com"
+  },
+  "info": {
+    "companyName": "TrayTooltip",
+    "productName": "系统托盘提示应用",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2024;",
+    "comments": "跨平台系统托盘提示应用 - Go + Wails"
+  }
+}
