@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Tiles BIM - 建筑信息模型可视化系统</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    }
+
+    .cesium-viewer-bottom {
+      display: none;
+    }
+
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .header-info {
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .header-info span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .building-popup {
+      position: absolute;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      min-width: 380px;
+      max-width: 450px;
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .popup-header {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .popup-header h3 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .popup-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .popup-close:hover {
+      opacity: 1;
+    }
+
+    .popup-content {
+      padding: 20px;
+      max-height: 450px;
+      overflow-y: auto;
+    }
+
+    .popup-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .popup-content::-webkit-scrollbar-thumb {
+      background: #c5cae9;
+      border-radius: 3px;
+    }
+
+    .info-row {
+      display: flex;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      width: 100px;
+      color: #666;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .info-value.highlight {
+      color: #1a237e;
+      font-size: 16px;
+    }
+
+    .section-title {
+      color: #1a237e;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 15px 0 10px 0;
+      margin-bottom: 5px;
+      border-bottom: 2px solid #1a237e;
+      display: inline-block;
+    }
+
+    .facilities-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .facility-tag {
+      background: #e8eaf6;
+      color: #1a237e;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-normal {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-warning {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .toolbar {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      padding: 15px;
+      z-index: 100;
+    }
+
+    .toolbar-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 20px;
+      margin-bottom: 8px;
+      background: #1a237e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .toolbar-btn:last-child {
+      margin-bottom: 0;
+    }
+
+    .toolbar-btn:hover {
+      background: #283593;
+    }
+
+    .toolbar-btn.secondary {
+      background: #7986cb;
+    }
+
+    .toolbar-btn.secondary:hover {
+      background: #5c6bc0;
+    }
+
+    .sunlight-panel {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      padding: 20px;
+      z-index: 100;
+      width: 320px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #1a237e;
+    }
+
+    .panel-header h3 {
+      font-size: 16px;
+      color: #1a237e;
+      font-weight: 600;
+    }
+
+    .panel-toggle {
+      background: #1a237e;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #1a237e;
+    }
+
+    .slider-container {
+      margin-bottom: 15px;
+    }
+
+    .slider {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e0e0e0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1a237e;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1a237e;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .slider-value {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .preset-btn {
+      padding: 8px 10px;
+      background: #e8eaf6;
+      color: #1a237e;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: #c5cae9;
+      transform: translateY(-1px);
+    }
+
+    .preset-btn.active {
+      background: #1a237e;
+      color: white;
+    }
+
+    .play-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .play-btn {
+      flex: 1;
+      padding: 10px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .play-btn:hover {
+      background: #43a047;
+    }
+
+    .play-btn.pause {
+      background: #ff9800;
+    }
+
+    .play-btn.pause:hover {
+      background: #f57c00;
+    }
+
+    .speed-select {
+      width: 80px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .sun-info {
+      background: #fff8e1;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .sun-info-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+
+    .sun-info-label {
+      color: #795548;
+    }
+
+    .sun-info-value {
+      color: #3e2723;
+      font-weight: 600;
+    }
+
+    .shadow-intensity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shadow-intensity input {
+      flex: 1;
+    }
+
+    .minimized {
+      width: auto;
+      padding: 10px 15px;
+    }
+
+    .minimized .panel-content {
+      display: none;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e8eaf6;
+      border-top: 4px solid #1a237e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      color: #1a237e;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏢 建筑信息模型可视化系统</h1>
+    <div class="header-info">
+      <span>📍 科技园区</span>
+      <span>🏗️ 建筑数量: 3栋</span>
+      <span>📊 3D Tiles引擎</span>
+    </div>
+  </div>
+
+  <div id="cesiumContainer"></div>
+
+  <div class="toolbar">
+    <button class="toolbar-btn" onclick="resetView()">🔄 重置视角</button>
+    <button class="toolbar-btn secondary" onclick="toggleTiles()">👁️ 显示/隐藏模型</button>
+    <button class="toolbar-btn secondary" onclick="showBuildingsList()">📋 建筑列表</button>
+  </div>
+
+  <div class="building-popup" id="buildingPopup">
+    <div class="popup-header">
+      <h3 id="popupTitle">建筑信息</h3>
+      <button class="popup-close" onclick="closePopup()">&times;</button>
+    </div>
+    <div class="popup-content" id="popupContent">
+    </div>
+  </div>
+
+  <div class="sunlight-panel" id="sunlightPanel">
+    <div class="panel-header">
+      <h3>☀️ 日照分析</h3>
+      <button class="panel-toggle" onclick="toggleSunlightPanel()">_</button>
+    </div>
+    <div class="panel-content">
+      <div class="form-group">
+        <label class="form-label">日期</label>
+        <input type="date" class="form-input" id="dateInput" onchange="updateSunlight()">
+      </div>
+
+      <div class="slider-container">
+        <label class="form-label">时间</label>
+        <input type="range" class="slider" id="timeSlider" min="0" max="1440" value="720" oninput="updateSunlight()">
+        <div class="slider-value">
+          <span>00:00</span>
+          <span id="currentTime">12:00</span>
+          <span>24:00</span>
+        </div>
+      </div>
+
+      <div class="preset-buttons">
+        <button class="preset-btn" onclick="setPresetTime(6)">日出 06:00</button>
+        <button class="preset-btn" onclick="setPresetTime(9)">上午 09:00</button>
+        <button class="preset-btn" onclick="setPresetTime(12)">正午 12:00</button>
+        <button class="preset-btn" onclick="setPresetTime(15)">下午 15:00</button>
+        <button class="preset-btn" onclick="setPresetTime(18)">日落 18:00</button>
+        <button class="preset-btn" onclick="setPresetTime(21)">夜晚 21:00</button>
+      </div>
+
+      <div class="play-controls">
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">▶ 播放</button>
+        <select class="speed-select" id="speedSelect">
+          <option value="1">1x</option>
+          <option value="2">2x</option>
+          <option value="5" selected>5x</option>
+          <option value="10">10x</option>
+          <option value="30">30x</option>
+        </select>
+      </div>
+
+      <div class="slider-container">
+        <label class="form-label">阴影强度</label>
+        <div class="shadow-intensity">
+          <input type="range" class="slider" id="shadowSlider" min="10" max="90" value="30" oninput="updateShadowIntensity()">
+          <span id="shadowValue">30%</span>
+        </div>
+      </div>
+
+      <div class="sun-info">
+        <div class="sun-info-item">
+          <span class="sun-info-label">太阳方位角</span>
+          <span class="sun-info-value" id="sunAzimuth">0°</span>
+        </div>
+        <div class="sun-info-item">
+          <span class="sun-info-label">太阳高度角</span>
+          <span class="sun-info-value" id="sunElevation">0°</span>
+        </div>
+        <div class="sun-info-item">
+          <span class="sun-info-label">日出时间</span>
+          <span class="sun-info-value" id="sunrise">--:--</span>
+        </div>
+        <div class="sun-info-item">
+          <span class="sun-info-label">日落时间</span>
+          <span class="sun-info-value" id="sunset">--:--</span>
+        </div>
+        <div class="sun-info-item">
+          <span class="sun-info-label">昼长</span>
+          <span class="sun-info-value" id="dayLength">-- 小时</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在加载三维场景...</div>
+  </div>
+
+  <script>
+    let viewer;
+    let tileset;
+    let tilesVisible = true;
+
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc2ODksImlhdCI6MTYyMjYxMTQ5M30.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+
+    function initViewer() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: Cesium.createWorldTerrain(),
+        animation: false,
+        timeline: false,
+        baseLayerPicker: true,
+        geocoder: true,
+        homeButton: true,
+        sceneModePicker: true,
+        navigationHelpButton: false,
+        fullscreenButton: true,
+        infoBox: false,
+        selectionIndicator: true,
+        useDefaultRenderLoop: true,
+        targetFrameRate: 60
+      });
+
+      const scene = viewer.scene;
+
+      scene.globe.depthTestAgainstTerrain = true;
+
+      scene.globe.tileCacheSize = 1000;
+
+      scene.globe.maximumScreenSpaceError = 2;
+
+      if (scene.highDynamicRangeSupported) {
+        scene.highDynamicRange = true;
+      }
+
+      scene.fxaa = true;
+
+      scene.screenSpaceCameraController.minimumZoomDistance = 50;
+      scene.screenSpaceCameraController.maximumZoomDistance = 50000;
+
+      scene.globe.enableLighting = true;
+      scene.light = new Cesium.DirectionalLight({
+        direction: new Cesium.Cartesian3(0.3, -0.7, -0.5),
+        intensity: 1.2
+      });
+
+      scene.shadowMap.enabled = true;
+      scene.shadowMap.softShadows = true;
+      scene.shadowMap.size = 2048;
+      scene.shadowMap.darkness = 0.3;
+
+      scene.fog.enabled = true;
+      scene.fog.density = 0.0002;
+      scene.fog.minimumBrightness = 0.8;
+
+      scene.globe.baseColor = new Cesium.Color(0.8, 0.8, 0.8, 1.0);
+
+      scene.requestRenderMode = false;
+      scene.maximumRenderTimeChange = 0.5;
+
+      scene.postProcessStages.fxaa.enabled = true;
+
+      if (Cesium.FeatureDetection.supportsImageRenderingPixelated()) {
+        viewer.resolutionScale = window.devicePixelRatio;
+      }
+
+      loadBuildingTileset();
+
+      setupClickHandler();
+
+      addBuildingHighlights();
+
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }, 1500);
+
+      setTimeout(() => {
+        initSunlightAnalysis();
+      }, 2000);
+
+      console.log('Viewer initialized with optimized rendering settings');
+    }
+
+    let highlightedBuilding = null;
+
+    function addBuildingHighlights() {
+      const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      
+      handler.setInputAction(function(movement) {
+        const pickedFeatures = viewer.scene.drillPick(movement.endPosition, 3, 3);
+        
+        if (highlightedBuilding) {
+          if (highlightedBuilding.polygon) {
+            highlightedBuilding.polygon.material = highlightedBuilding.originalColor;
+          }
+          highlightedBuilding = null;
+        }
+        
+        if (pickedFeatures && pickedFeatures.length > 0) {
+          for (let i = 0; i < pickedFeatures.length; i++) {
+            const feature = pickedFeatures[i];
+            if (feature.id && feature.id.id && feature.id.id.startsWith('building_')) {
+              highlightedBuilding = feature.id;
+              if (highlightedBuilding.polygon) {
+                highlightedBuilding.originalColor = highlightedBuilding.polygon.material.getValue();
+                highlightedBuilding.polygon.material = Cesium.Color.YELLOW.withAlpha(0.6);
+              }
+              break;
+            }
+          }
+        }
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }
+
+    function loadBuildingTileset() {
+      const tilesetUrl = 'https://cesium.com/downloads/cesiumjs/releases/1.114/SampleData/Cesium3DTiles/Tilesets/Tileset/tileset.json';
+      
+      Cesium.Cesium3DTileset.fromUrl(tilesetUrl, {
+        maximumScreenSpaceError: 4,
+        maximumMemoryUsage: 1024,
+        skipLevelOfDetail: true,
+        baseScreenSpaceError: 1024,
+        skipScreenSpaceErrorFactor: 16,
+        skipLevels: 1,
+        immediatelyLoadDesiredLevelOfDetail: false,
+        loadSiblings: true,
+        foveatedScreenSpaceError: true,
+        foveatedConeSize: 0.1,
+        foveatedMinimumScreenSpaceErrorRelaxation: 0.5,
+        foveatedInterpolationCallback: Cesium.Math.lerp,
+        foveatedTimeDelay: 0.2,
+        dynamicScreenSpaceError: true,
+        dynamicScreenSpaceErrorDensity: 0.00278,
+        dynamicScreenSpaceErrorFactor: 4.0,
+        cullWithChildrenBounds: true,
+        preloadFlightDestinations: true,
+        preferLeaves: true,
+        lightingFactor: 1.0,
+        fadeScreenSpaceError: 2.0,
+        fadeTime: 0.5
+      }).then(function(ts) {
+        tileset = ts;
+        
+        tileset.allTilesLoaded.addEventListener(function() {
+          console.log('All tiles loaded');
+        });
+        
+        tileset.tileFailed.addEventListener(function(error) {
+          console.warn('Tile load error:', error);
+        });
+        
+        tileset.tileVisible.addEventListener(function(tile) {
+          const content = tile.content;
+          if (content && content.featuresLength > 0) {
+            for (let i = 0; i < content.featuresLength; i++) {
+              const feature = content.getFeature(i);
+              if (!feature.getProperty('id')) {
+                feature.setProperty('id', 'building_001');
+              }
+            }
+          }
+        });
+        
+        viewer.scene.primitives.add(tileset);
+        
+        const boundingSphere = tileset.boundingSphere;
+        const cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        const center = Cesium.Cartesian3.fromRadians(
+          cartographic.longitude,
+          cartographic.latitude,
+          cartographic.height + 200
+        );
+        
+        const offset = new Cesium.HeadingPitchRange(
+          0,
+          -0.5,
+          boundingSphere.radius * 4.0
+        );
+        
+        viewer.zoomTo(tileset, offset);
+        console.log('3D Tileset loaded successfully with optimized settings');
+      }).otherwise(function(error) {
+        console.log('Error loading tileset, using sample data:', error);
+        createSampleBuildings();
+      });
+    }
+
+    function createSampleBuildings() {
+      const buildings = [
+        { id: 'building_001', position: [116.3974, 39.9087], height: 98.5, color: Cesium.Color.fromCssColorString('#1a237e'), size: 0.0008 },
+        { id: 'building_002', position: [116.3980, 39.9090], height: 52.3, color: Cesium.Color.fromCssColorString('#3949ab'), size: 0.0006 },
+        { id: 'building_003', position: [116.3968, 39.9085], height: 28.6, color: Cesium.Color.fromCssColorString('#5c6bc0'), size: 0.0005 }
+      ];
+
+      buildings.forEach(building => {
+        const entity = viewer.entities.add({
+          id: building.id,
+          name: building.id,
+          position: Cesium.Cartesian3.fromDegrees(building.position[0], building.position[1], building.height / 2),
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights([
+              building.position[0] - building.size, building.position[1] - building.size * 0.75, 0,
+              building.position[0] + building.size, building.position[1] - building.size * 0.75, 0,
+              building.position[0] + building.size, building.position[1] + building.size * 0.75, 0,
+              building.position[0] - building.size, building.position[1] + building.size * 0.75, 0
+            ]),
+            height: 0,
+            extrudedHeight: building.height,
+            material: building.color.withAlpha(0.9),
+            outline: true,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 3,
+            perPositionHeight: true,
+            closeTop: true,
+            closeBottom: true
+          },
+          properties: {
+            buildingId: building.id,
+            buildingHeight: building.height,
+            clickable: true
+          }
+        });
+      });
+
+      viewer.zoomTo(viewer.entities);
+    }
+
+    function setupClickHandler() {
+      const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      
+      handler.setInputAction(function(click) {
+        const pickWidth = 8;
+        const pickHeight = 8;
+        
+        const pickRay = viewer.scene.camera.getPickRay(click.position);
+        if (!pickRay) return;
+        
+        const globeIntersection = viewer.scene.globe.pick(pickRay, viewer.scene);
+        
+        const pickedFeatures = viewer.scene.drillPick(click.position, pickWidth, pickHeight, 10);
+        
+        let buildingId = null;
+        
+        if (pickedFeatures && pickedFeatures.length > 0) {
+          for (let i = 0; i < pickedFeatures.length; i++) {
+            const feature = pickedFeatures[i];
+            
+            if (feature.id) {
+              if (typeof feature.id === 'string' && feature.id.startsWith('building_')) {
+                buildingId = feature.id;
+                break;
+              }
+              if (feature.id.id && feature.id.id.startsWith('building_')) {
+                buildingId = feature.id.id;
+                break;
+              }
+              if (feature.id.properties && feature.id.properties.buildingId) {
+                buildingId = feature.id.properties.buildingId.getValue();
+                break;
+              }
+            }
+            
+            if (feature.getProperty) {
+              try {
+                if (feature.getProperty('buildingId')) {
+                  buildingId = feature.getProperty('buildingId');
+                  break;
+                }
+                if (feature.getProperty('id')) {
+                  buildingId = feature.getProperty('id');
+                  break;
+                }
+              } catch (e) {}
+            }
+            
+            if (feature.primitive && feature.primitive.tileset) {
+              buildingId = 'building_001';
+              break;
+            }
+          }
+        }
+        
+        if (!buildingId && globeIntersection) {
+          const cartographic = Cesium.Cartographic.fromCartesian(globeIntersection);
+          const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+          const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+          
+          const buildings = [
+            { id: 'building_001', position: [116.3974, 39.9087] },
+            { id: 'building_002', position: [116.3980, 39.9090] },
+            { id: 'building_003', position: [116.3968, 39.9085] }
+          ];
+          
+          let minDistance = Infinity;
+          let closestBuilding = null;
+          
+          buildings.forEach(building => {
+            const dx = longitude - building.position[0];
+            const dy = latitude - building.position[1];
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < minDistance && distance < 0.002) {
+              minDistance = distance;
+              closestBuilding = building;
+            }
+          });
+          
+          if (closestBuilding) {
+            buildingId = closestBuilding.id;
+          }
+        }
+        
+        if (buildingId) {
+          fetchBuildingData(buildingId, click.position);
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    }
+
+    function fetchBuildingData(buildingId, clickPosition) {
+      fetch(`/api/buildings/${buildingId}`)
+        .then(response => response.json())
+        .then(data => {
+          showBuildingPopup(data, clickPosition);
+        })
+        .catch(error => {
+          console.log('Using fallback data:', error);
+          const fallbackData = getFallbackData(buildingId);
+          showBuildingPopup(fallbackData, clickPosition);
+        });
+    }
+
+    function getFallbackData(buildingId) {
+      const data = {
+        'building_001': {
+          id: 'building_001', name: '科技园区A座', type: '办公楼', floors: 25, height: 98.5,
+          area: 45000, yearBuilt: 2020, address: '科技园区创新大道88号',
+          owner: '科技创新发展有限公司', usage: '商业办公', status: '正常使用',
+          lastInspection: '2024-01-15',
+          materials: { structure: '钢筋混凝土框架', facade: '玻璃幕墙', roof: '钢结构' },
+          facilities: ['电梯8部', '中央空调', '消防系统', '智能安防', '地下车位300个']
+        },
+        'building_002': {
+          id: 'building_002', name: '研发中心B栋', type: '研发楼', floors: 12, height: 52.3,
+          area: 28000, yearBuilt: 2021, address: '科技园区研发路168号',
+          owner: '科技创新发展有限公司', usage: '研发实验', status: '正常使用',
+          lastInspection: '2024-02-20',
+          materials: { structure: '钢筋混凝土框架', facade: '铝板幕墙', roof: '混凝土屋面' },
+          facilities: ['电梯4部', '中央空调', '实验室通风系统', '消防系统', '智能安防']
+        },
+        'building_003': {
+          id: 'building_003', name: '员工公寓C区', type: '宿舍楼', floors: 8, height: 28.6,
+          area: 15000, yearBuilt: 2019, address: '科技园区生活路88号',
+          owner: '科技创新发展有限公司', usage: '员工宿舍', status: '正常使用',
+          lastInspection: '2023-12-10',
+          materials: { structure: '砖混结构', facade: '外墙涂料', roof: '平屋面' },
+          facilities: ['电梯2部', '热水供应', '消防系统', '监控系统']
+        }
+      };
+      return data[buildingId] || data['building_001'];
+    }
+
+    function showBuildingPopup(data, position) {
+      const popup = document.getElementById('buildingPopup');
+      const content = document.getElementById('popupContent');
+      const title = document.getElementById('popupTitle');
+
+      title.textContent = `🏢 ${data.name}`;
+      
+      content.innerHTML = `
+        <div class="info-row">
+          <span class="info-label">建筑编号</span>
+          <span class="info-value">${data.id}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">建筑类型</span>
+          <span class="info-value highlight">${data.type}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">楼层数</span>
+          <span class="info-value">${data.floors} 层</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">建筑高度</span>
+          <span class="info-value">${data.height} 米</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">建筑面积</span>
+          <span class="info-value">${data.area.toLocaleString()} ㎡</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">建成年份</span>
+          <span class="info-value">${data.yearBuilt} 年</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">使用状态</span>
+          <span class="info-value"><span class="status-badge status-normal">${data.status}</span></span>
+        </div>
+
+        <div class="section-title">位置信息</div>
+        <div class="info-row">
+          <span class="info-label">地址</span>
+          <span class="info-value">${data.address}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">产权方</span>
+          <span class="info-value">${data.owner}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">用途</span>
+          <span class="info-value">${data.usage}</span>
+        </div>
+
+        <div class="section-title">建筑材料</div>
+        <div class="info-row">
+          <span class="info-label">结构</span>
+          <span class="info-value">${data.materials.structure}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">外墙</span>
+          <span class="info-value">${data.materials.facade}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">屋面</span>
+          <span class="info-value">${data.materials.roof}</span>
+        </div>
+
+        <div class="section-title">配套设施</div>
+        <div class="facilities-list">
+          ${data.facilities.map(f => `<span class="facility-tag">${f}</span>`).join('')}
+        </div>
+
+        <div class="section-title">维护信息</div>
+        <div class="info-row">
+          <span class="info-label">上次检查</span>
+          <span class="info-value">${data.lastInspection}</span>
+        </div>
+      `;
+
+      popup.style.display = 'block';
+      
+      let left = position.x + 20;
+      let top = position.y + 20;
+      
+      const popupRect = popup.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      if (left + popupRect.width > viewportWidth - 10) {
+        left = position.x - popupRect.width - 20;
+      }
+      if (top + popupRect.height > viewportHeight - 10) {
+        top = position.y - popupRect.height - 20;
+      }
+      
+      left = Math.max(10, Math.min(left, viewportWidth - popupRect.width - 10));
+      top = Math.max(10, Math.min(top, viewportHeight - popupRect.height - 10));
+      
+      popup.style.left = `${left}px`;
+      popup.style.top = `${top}px`;
+    }
+
+    function closePopup() {
+      document.getElementById('buildingPopup').style.display = 'none';
+    }
+
+    function resetView() {
+      viewer.zoomTo(viewer.entities);
+      closePopup();
+    }
+
+    function toggleTiles() {
+      tilesVisible = !tilesVisible;
+      if (tileset) {
+        tileset.show = tilesVisible;
+      }
+      viewer.entities.show = tilesVisible;
+    }
+
+    function showBuildingsList() {
+      const buildings = [
+        { id: 'building_001', name: '科技园区A座' },
+        { id: 'building_002', name: '研发中心B栋' },
+        { id: 'building_003', name: '员工公寓C区' }
+      ];
+      
+      const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
+      fetchBuildingData(randomBuilding.id, { x: 200, y: 200 });
+    }
+
+    let isPlaying = false;
+    let playInterval = null;
+    let currentDateTime = new Date();
+    const parkLongitude = 116.3974;
+    const parkLatitude = 39.9087;
+
+    function initSunlightAnalysis() {
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      document.getElementById('dateInput').value = dateStr;
+      
+      const hours = today.getHours();
+      const minutes = today.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      document.getElementById('timeSlider').value = totalMinutes;
+      
+      document.getElementById('speedSelect').addEventListener('change', () => {
+        if (isPlaying) {
+          stopAnimation();
+          startAnimation();
+        }
+      });
+      
+      updateSunlight();
+    }
+
+    function updateSunlight() {
+      const dateInput = document.getElementById('dateInput').value;
+      const timeMinutes = parseInt(document.getElementById('timeSlider').value);
+      
+      const hours = Math.floor(timeMinutes / 60);
+      const minutes = timeMinutes % 60;
+      
+      document.getElementById('currentTime').textContent = 
+        String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+      
+      const [year, month, day] = dateInput.split('-').map(Number);
+      currentDateTime = new Date(year, month - 1, day, hours, minutes, 0);
+      
+      const julianDate = Cesium.JulianDate.fromDate(currentDateTime);
+      viewer.clock.currentTime = julianDate;
+      
+      updateSunPosition(year, month, day, hours, minutes);
+      
+      const shadowMap = viewer.scene.shadowMap;
+      if (shadowMap) {
+        shadowMap.enabled = true;
+        shadowMap.softShadows = true;
+        shadowMap.size = 2048;
+      }
+    }
+
+    function updateSunPosition(year, month, day, hours, minutes) {
+      const dayOfYear = getDayOfYear(year, month, day);
+      const decimalHours = hours + minutes / 60;
+      
+      const declination = 23.45 * Math.sin(Cesium.Math.toRadians(360 * (284 + dayOfYear) / 365));
+      
+      const eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(Cesium.Math.toRadians(dayOfYear)) 
+        - 0.032077 * Math.sin(Cesium.Math.toRadians(dayOfYear))
+        - 0.014615 * Math.cos(Cesium.Math.toRadians(2 * dayOfYear))
+        - 0.040849 * Math.sin(Cesium.Math.toRadians(2 * dayOfYear)));
+      
+      const solarTimeNoon = 12 - (parkLongitude - 120) / 15 - eqTime / 60;
+      
+      const hourAngle = 15 * (decimalHours - solarTimeNoon);
+      
+      const latRad = Cesium.Math.toRadians(parkLatitude);
+      const decRad = Cesium.Math.toRadians(declination);
+      const haRad = Cesium.Math.toRadians(hourAngle);
+      
+      const sinElevation = Math.sin(latRad) * Math.sin(decRad) + 
+                          Math.cos(latRad) * Math.cos(decRad) * Math.cos(haRad);
+      const elevation = Math.asin(sinElevation);
+      const elevationDeg = Cesium.Math.toDegrees(elevation);
+      
+      const cosAzimuth = (Math.sin(elevation) * Math.sin(latRad) - Math.sin(decRad)) / 
+                         (Math.cos(elevation) * Math.cos(latRad));
+      let azimuth = Math.acos(Math.min(1, Math.max(-1, cosAzimuth)));
+      
+      if (hourAngle > 0) {
+        azimuth = 2 * Math.PI - azimuth;
+      }
+      
+      const azimuthDeg = Cesium.Math.toDegrees(azimuth);
+      
+      document.getElementById('sunAzimuth').textContent = azimuthDeg.toFixed(1) + '°';
+      document.getElementById('sunElevation').textContent = elevationDeg.toFixed(1) + '°';
+      
+      calculateSunriseSunset(year, month, day);
+      
+      if (elevationDeg > 0) {
+        const sunPosition = computeSunPosition(azimuthDeg, elevationDeg);
+        if (viewer.scene.light) {
+          viewer.scene.light.direction = sunPosition;
+          viewer.scene.light.intensity = Math.max(0.3, Math.min(2, elevationDeg / 45));
+        }
+      } else {
+        if (viewer.scene.light) {
+          viewer.scene.light.intensity = 0.1;
+        }
+      }
+    }
+
+    function computeSunPosition(azimuthDeg, elevationDeg) {
+      const azimuthRad = Cesium.Math.toRadians(azimuthDeg);
+      const elevationRad = Cesium.Math.toRadians(elevationDeg);
+      
+      const x = -Math.cos(elevationRad) * Math.sin(azimuthRad);
+      const y = -Math.cos(elevationRad) * Math.cos(azimuthRad);
+      const z = Math.sin(elevationRad);
+      
+      return new Cesium.Cartesian3(x, y, z);
+    }
+
+    function getDayOfYear(year, month, day) {
+      const start = new Date(year, 0, 0);
+      const current = new Date(year, month - 1, day);
+      const diff = current - start;
+      const oneDay = 1000 * 60 * 60 * 24;
+      return Math.floor(diff / oneDay);
+    }
+
+    function calculateSunriseSunset(year, month, day) {
+      const dayOfYear = getDayOfYear(year, month, day);
+      
+      const declination = 23.45 * Math.sin(Cesium.Math.toRadians(360 * (284 + dayOfYear) / 365));
+      
+      const latRad = Cesium.Math.toRadians(parkLatitude);
+      const decRad = Cesium.Math.toRadians(declination);
+      
+      const zenith = Cesium.Math.toRadians(90.833);
+      
+      let hourAngleArg = Math.cos(zenith) / (Math.cos(latRad) * Math.cos(decRad)) -
+                       Math.tan(latRad) * Math.tan(decRad);
+      hourAngleArg = Math.max(-1, Math.min(1, hourAngleArg));
+      
+      const hourAngle = Math.acos(hourAngleArg);
+      const hourAngleDeg = Cesium.Math.toDegrees(hourAngle);
+      
+      const eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(Cesium.Math.toRadians(dayOfYear)) 
+        - 0.032077 * Math.sin(Cesium.Math.toRadians(dayOfYear))
+        - 0.014615 * Math.cos(Cesium.Math.toRadians(2 * dayOfYear))
+        - 0.040849 * Math.sin(Cesium.Math.toRadians(2 * dayOfYear)));
+      
+      const sunriseHour = 12 - hourAngleDeg / 15 - (parkLongitude - 120) / 15 - eqTime / 60;
+      const sunsetHour = 12 + hourAngleDeg / 15 - (parkLongitude - 120) / 15 - eqTime / 60;
+      
+      const sunriseStr = formatTime(sunriseHour);
+      const sunsetStr = formatTime(sunsetHour);
+      const dayLength = sunsetHour - sunriseHour;
+      
+      document.getElementById('sunrise').textContent = sunriseStr;
+      document.getElementById('sunset').textContent = sunsetStr;
+      document.getElementById('dayLength').textContent = dayLength.toFixed(1) + ' 小时';
+    }
+
+    function formatTime(decimalHours) {
+      const hours = Math.floor(decimalHours);
+      const minutes = Math.round((decimalHours - hours) * 60);
+      return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+    }
+
+    function setPresetTime(hour) {
+      document.getElementById('timeSlider').value = hour * 60;
+      updateSunlight();
+      
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('playBtn');
+      
+      if (isPlaying) {
+        btn.textContent = '⏸ 暂停';
+        btn.classList.add('pause');
+        startAnimation();
+      } else {
+        btn.textContent = '▶ 播放';
+        btn.classList.remove('pause');
+        stopAnimation();
+      }
+    }
+
+    function startAnimation() {
+      const speed = parseInt(document.getElementById('speedSelect').value);
+      const interval = 1000 / speed;
+      
+      playInterval = setInterval(() => {
+        let timeValue = parseInt(document.getElementById('timeSlider').value);
+        timeValue = (timeValue + 1) % 1440;
+        document.getElementById('timeSlider').value = timeValue;
+        updateSunlight();
+      }, interval);
+    }
+
+    function stopAnimation() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+    }
+
+    function updateShadowIntensity() {
+      const value = document.getElementById('shadowSlider').value;
+      document.getElementById('shadowValue').textContent = value + '%';
+      
+      if (viewer.scene.shadowMap) {
+        viewer.scene.shadowMap.darkness = value / 100;
+      }
+    }
+
+    function toggleSunlightPanel() {
+      const panel = document.getElementById('sunlightPanel');
+      panel.classList.toggle('minimized');
+      const btn = panel.querySelector('.panel-toggle');
+      btn.textContent = panel.classList.contains('minimized') ? '□' : '_';
+    }
+
+    initViewer();
+  </script>
+</body>
+</html>
