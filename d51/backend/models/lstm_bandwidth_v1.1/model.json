@@ -1,0 +1,141 @@
+{
+  "format": "layers-model",
+  "generatedBy": "TensorFlow.js v4.11.0",
+  "convertedBy": null,
+  "modelTopology": {
+    "class_name": "Sequential",
+    "config": {
+      "name": "bandwidth_predictor",
+      "layers": [
+        {
+          "class_name": "LSTM",
+          "config": {
+            "name": "lstm_1",
+            "units": 64,
+            "activation": "tanh",
+            "recurrent_activation": "sigmoid",
+            "return_sequences": true,
+            "input_shape": [
+              30,
+              3
+            ]
+          }
+        },
+        {
+          "class_name": "Dropout",
+          "config": {
+            "name": "dropout_1",
+            "rate": 0.2
+          }
+        },
+        {
+          "class_name": "LSTM",
+          "config": {
+            "name": "lstm_2",
+            "units": 32,
+            "activation": "tanh",
+            "recurrent_activation": "sigmoid",
+            "return_sequences": false
+          }
+        },
+        {
+          "class_name": "Dropout",
+          "config": {
+            "name": "dropout_2",
+            "rate": 0.2
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "name": "dense_1",
+            "units": 3,
+            "activation": "softmax"
+          }
+        }
+      ]
+    }
+  },
+  "weightsManifest": [
+    {
+      "paths": [
+        "./weights_undefined.bin"
+      ],
+      "weights": [
+        {
+          "name": "lstm_1/kernel",
+          "dtype": "float32",
+          "shape": [
+            3,
+            256
+          ]
+        },
+        {
+          "name": "lstm_1/recurrent_kernel",
+          "dtype": "float32",
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "name": "lstm_1/bias",
+          "dtype": "float32",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "lstm_2/kernel",
+          "dtype": "float32",
+          "shape": [
+            64,
+            128
+          ]
+        },
+        {
+          "name": "lstm_2/recurrent_kernel",
+          "dtype": "float32",
+          "shape": [
+            32,
+            128
+          ]
+        },
+        {
+          "name": "lstm_2/bias",
+          "dtype": "float32",
+          "shape": [
+            128
+          ]
+        },
+        {
+          "name": "dense_1/kernel",
+          "dtype": "float32",
+          "shape": [
+            32,
+            3
+          ]
+        },
+        {
+          "name": "dense_1/bias",
+          "dtype": "float32",
+          "shape": [
+            3
+          ]
+        }
+      ]
+    }
+  ],
+  "trainingConfig": {
+    "loss": "categoricalCrossentropy",
+    "optimizer_config": {
+      "class_name": "Adam",
+      "config": {
+        "learning_rate": 0.001
+      }
+    },
+    "metrics": [
+      "accuracy"
+    ]
+  }
+}
