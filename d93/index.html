@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGPU 流体仿真</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">🌊 流体仿真器</h1>
+      <div class="fps-counter" id="fps">0 FPS</div>
+    </header>
+
+    <main class="main-content">
+      <div class="canvas-wrapper">
+        <canvas id="fluidCanvas"></canvas>
+      </div>
+
+      <aside class="control-panel">
+        <h2 class="panel-title">参数控制</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span class="label-text">流速</span>
+            <span class="value-display" id="velocityValue">5.0</span>
+          </label>
+          <input type="range" id="velocity" min="0.1" max="20" step="0.1" class="slider">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span class="label-text">粘度</span>
+            <span class="value-display" id="viscosityValue">0.00</span>
+          </label>
+          <input type="range" id="viscosity" min="0" max="1" step="0.01" class="slider">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span class="label-text">重力</span>
+            <span class="value-display" id="gravityValue">9.8</span>
+          </label>
+          <input type="range" id="gravity" min="-50" max="50" step="0.1" class="slider">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span class="label-text">涡度强度</span>
+            <span class="value-display" id="vorticityValue">3.0</span>
+          </label>
+          <input type="range" id="vorticity" min="0" max="10" step="0.1" class="slider">
+        </div>
+
+        <div class="info-section">
+          <h3 class="info-title">使用说明</h3>
+          <ul class="info-list">
+            <li>🖱️ 点击并拖动画布添加流体</li>
+            <li>📱 支持触摸设备操作</li>
+            <li>🎛️ 调节滑块改变物理参数</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="errorMessage" class="error-overlay hidden">
+    <div class="error-content">
+      <h2>⚠️ WebGPU 不支持</h2>
+      <p>您的浏览器不支持 WebGPU。请使用最新版本的 Chrome、Edge 或 Brave 浏览器。</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

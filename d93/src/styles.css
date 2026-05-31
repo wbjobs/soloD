@@ -1,0 +1,244 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0a192f 0%, #112240 50%, #0a192f 100%);
+  min-height: 100vh;
+  color: #ccd6f6;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #64ffda, #00bfff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fps-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: #64ffda;
+  padding: 8px 16px;
+  background: rgba(100, 255, 218, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(100, 255, 218, 0.3);
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.canvas-wrapper {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(100, 255, 218, 0.1);
+}
+
+#fluidCanvas {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  cursor: crosshair;
+  background: #050d18;
+}
+
+.control-panel {
+  background: rgba(17, 34, 64, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(100, 255, 218, 0.1);
+}
+
+.panel-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #64ffda;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+}
+
+.control-group {
+  margin-bottom: 24px;
+}
+
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.label-text {
+  font-weight: 500;
+  color: #8892b0;
+}
+
+.value-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: #64ffda;
+  padding: 4px 10px;
+  background: rgba(100, 255, 218, 0.1);
+  border-radius: 8px;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(90deg, #112240, #233554);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #64ffda, #00bfff);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(100, 255, 218, 0.7);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #64ffda, #00bfff);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+}
+
+.info-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(100, 255, 218, 0.2);
+}
+
+.info-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #a8b2d1;
+  margin-bottom: 12px;
+}
+
+.info-list {
+  list-style: none;
+  font-size: 0.875rem;
+  color: #8892b0;
+}
+
+.info-list li {
+  padding: 6px 0;
+  line-height: 1.5;
+}
+
+.error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 25, 47, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.error-overlay.hidden {
+  display: none;
+}
+
+.error-content {
+  text-align: center;
+  padding: 48px;
+  background: rgba(17, 34, 64, 0.9);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  max-width: 500px;
+}
+
+.error-content h2 {
+  color: #ff6b6b;
+  margin-bottom: 16px;
+  font-size: 1.5rem;
+}
+
+.error-content p {
+  color: #8892b0;
+  line-height: 1.6;
+}
+
+@media (max-width: 968px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .control-panel {
+    order: -1;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+}
