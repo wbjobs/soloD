@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时协作白板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .whiteboard-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: none;
+        }
+        .whiteboard-container.active {
+            display: block;
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        #whiteboard {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: crosshair;
+            background: white;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .users {
+            margin-top: 10px;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 4px;
+        }
+        .room-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" id="login-section">
+            <h1>实时协作白板</h1>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>房间名称（创建新房间）</label>
+                <input type="text" id="roomName" placeholder="请输入房间名称">
+            </div>
+            <div class="form-group">
+                <label>房间ID（加入现有房间）</label>
+                <input type="text" id="roomId" placeholder="请输入房间ID">
+            </div>
+            <div class="btn-group">
+                <button onclick="createRoom()">创建房间</button>
+                <button onclick="joinRoom()">加入房间</button>
+            </div>
+        </div>
+
+        <div class="whiteboard-container" id="whiteboard-section">
+            <div class="room-info">
+                <div>
+                    <strong>房间ID:</strong> <span id="currentRoomId"></span>
+                </div>
+                <div>
+                    <strong>用户:</strong> <span id="currentUser"></span>
+                </div>
+                <button onclick="leaveRoom()">离开房间</button>
+            </div>
+            
+            <div class="toolbar">
+                <label>颜色:</label>
+                <input type="color" id="colorPicker" value="#000000">
+                <label>粗细:</label>
+                <select id="lineWidth">
+                    <option value="2">细</option>
+                    <option value="5" selected>中</option>
+                    <option value="10">粗</option>
+                </select>
+                <button onclick="clearCanvas()">清空画布</button>
+                <button id="lockBtn" onclick="toggleRoomLock()" style="display: none; background: #dc3545;">锁定房间</button>
+            </div>
+
+            <canvas id="whiteboard" width="1000" height="600"></canvas>
+            
+            <div class="status" id="status">状态: 未连接</div>
+            <div class="users" id="users">在线用户: </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.protocol + '//' + window.location.host + '/api';
+        const SIGNALING_URL = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/';
+        
+        let ws = null;
+        let token = null;
+        let currentRoomId = null;
+        let currentUsername = null;
+        let isRoomLocked = false;
+        let roomCreator = null;
+
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let onlineUsers = new Set();
+
+        function initCanvas() {
+            canvas = document.getElementById('whiteboard');
+            ctx = canvas.getContext('2d');
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            [lastX, lastY] = [e.clientX - rect.left, e.clientY - rect.top];
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            if (isRoomLocked && currentUsername !== roomCreator) {
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const color = document.getElementById('colorPicker').value;
+            const width = document.getElementById('lineWidth').value;
+
+            drawLine(lastX, lastY, x, y, color, width, false);
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'draw',
+                    data: {
+                        fromX: lastX,
+                        fromY: lastY,
+                        toX: x,
+                        toY: y,
+                        color: color,
+                        width: width
+                    }
+                }));
+            }
+
+            [lastX, lastY] = [x, y];
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function drawLine(fromX, fromY, toX, toY, color, width, isRemote) {
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.strokeStyle = isRemote ? color : color;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function createRoom() {
+            const username = document.getElementById('username').value;
+            const roomName = document.getElementById('roomName').value;
+
+            if (!username || !roomName) {
+                alert('请输入用户名和房间名称');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: roomName, creator: username })
+                });
+
+                const data = await response.json();
+                token = data.token;
+                currentRoomId = data.roomId;
+                currentUsername = username;
+                roomCreator = username;
+                isRoomLocked = false;
+
+                enterRoom();
+            } catch (error) {
+                alert('创建房间失败: ' + error.message);
+            }
+        }
+
+        async function joinRoom() {
+            const username = document.getElementById('username').value;
+            const roomId = document.getElementById('roomId').value;
+
+            if (!username || !roomId) {
+                alert('请输入用户名和房间ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/rooms/${roomId}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+                token = data.token;
+                currentRoomId = roomId;
+                currentUsername = username;
+                isRoomLocked = data.locked;
+                roomCreator = data.creator;
+
+                enterRoom();
+            } catch (error) {
+                alert('加入房间失败: ' + error.message);
+            }
+        }
+
+        function enterRoom() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('whiteboard-section').classList.add('active');
+            document.getElementById('currentRoomId').textContent = currentRoomId;
+            document.getElementById('currentUser').textContent = currentUsername;
+
+            if (currentUsername === roomCreator) {
+                const lockBtn = document.getElementById('lockBtn');
+                lockBtn.style.display = 'inline-block';
+                updateLockButtonState();
+            }
+
+            initCanvas();
+            updateLockStatus();
+            connectWebSocket();
+        }
+
+        function leaveRoom() {
+            if (ws) {
+                ws.close();
+            }
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('whiteboard-section').classList.remove('active');
+            clearCanvas();
+            onlineUsers.clear();
+            updateUsersList();
+        }
+
+        function connectWebSocket() {
+            updateStatus('正在连接...');
+            
+            ws = new WebSocket(`${SIGNALING_URL}?token=${token}`);
+            
+            ws.onopen = () => {
+                updateStatus('已连接');
+                onlineUsers.add(currentUsername);
+                updateUsersList();
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            };
+            
+            ws.onclose = () => {
+                updateStatus('连接已断开');
+            };
+            
+            ws.onerror = (error) => {
+                updateStatus('连接错误');
+            };
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'user-joined':
+                    onlineUsers.add(msg.username);
+                    if (msg.creator) {
+                        roomCreator = msg.creator;
+                    }
+                    if (msg.locked !== undefined) {
+                        isRoomLocked = msg.locked;
+                        updateLockStatus();
+                        if (currentUsername === roomCreator) {
+                            updateLockButtonState();
+                        }
+                    }
+                    updateUsersList();
+                    break;
+                case 'user-left':
+                    onlineUsers.delete(msg.username);
+                    updateUsersList();
+                    break;
+                case 'draw':
+                    const data = msg.data;
+                    drawLine(data.fromX, data.fromY, data.toX, data.toY, data.color, data.width, true);
+                    break;
+                case 'room-locked':
+                    isRoomLocked = true;
+                    updateLockStatus();
+                    if (currentUsername === roomCreator) {
+                        updateLockButtonState();
+                    }
+                    break;
+                case 'room-unlocked':
+                    isRoomLocked = false;
+                    updateLockStatus();
+                    if (currentUsername === roomCreator) {
+                        updateLockButtonState();
+                    }
+                    break;
+                case 'offer':
+                case 'answer':
+                case 'ice-candidate':
+                    break;
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '状态: ' + message + (isRoomLocked ? ' (房间已锁定 - 仅创建者可绘制)' : '');
+        }
+
+        function updateUsersList() {
+            document.getElementById('users').textContent = '在线用户: ' + Array.from(onlineUsers).join(', ');
+        }
+
+        function updateLockButtonState() {
+            const lockBtn = document.getElementById('lockBtn');
+            if (isRoomLocked) {
+                lockBtn.textContent = '解锁房间';
+                lockBtn.style.background = '#28a745';
+            } else {
+                lockBtn.textContent = '锁定房间';
+                lockBtn.style.background = '#dc3545';
+            }
+        }
+
+        function updateLockStatus() {
+            updateStatus(ws && ws.readyState === WebSocket.OPEN ? '已连接' : '未连接');
+        }
+
+        function toggleRoomLock() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+            if (isRoomLocked) {
+                ws.send(JSON.stringify({
+                    type: 'unlock-room'
+                }));
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'lock-room'
+                }));
+            }
+        }
+    </script>
+</body>
+</html>
