@@ -1,0 +1,63 @@
+@import "leaflet/dist/leaflet.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: #CCD6F6;
+  background-color: #0A192F;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #0A192F;
+}
+
+.leaflet-container {
+  background-color: #112240 !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.7) contrast(1.2) hue-rotate(180deg);
+}
+
+.glass-card {
+  background: rgba(17, 34, 64, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(100, 255, 218, 0.1);
+}
+
+.upload-progress-bar {
+  background: linear-gradient(90deg, #64FFDA 0%, #7FFFE4 100%);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #112240;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2D4A6F;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64FFDA;
+}
