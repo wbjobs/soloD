@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGPU Ray Tracer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #000;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    #app {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      color: white;
+      z-index: 100;
+      min-width: 250px;
+    }
+    .controls h2 {
+      margin-bottom: 15px;
+      font-size: 18px;
+      color: #00ffaa;
+    }
+    .control-group {
+      margin-bottom: 12px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+    .control-group input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .stats {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #333;
+      font-size: 12px;
+      color: #888;
+    }
+    .gpu-info {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(0, 255, 170, 0.1);
+      border-radius: 5px;
+    }
+    .gpu-item {
+      font-size: 11px;
+      margin: 3px 0;
+      color: #00ffaa;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="raytraceCanvas"></canvas>
+    <div class="controls">
+      <h2>🎮 Ray Tracer Controls</h2>
+      
+      <div class="control-group">
+        <label>Samples per Pixel</label>
+        <input type="range" id="samples" min="1" max="2048" value="128" step="1">
+        <span id="samplesValue">128</span>
+      </div>
+      
+      <div class="control-group">
+        <label>Max Bounces</label>
+        <input type="range" id="bounces" min="1" max="10" value="5" step="1">
+        <span id="bouncesValue">5</span>
+      </div>
+      
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="adaptive" checked>
+          Adaptive Sampling
+        </label>
+      </div>
+      
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="denoise" checked>
+          Denoising
+        </label>
+      </div>
+      
+      <div class="control-group">
+        <label>FOV</label>
+        <input type="range" id="fov" min="30" max="120" value="60" step="1">
+        <span id="fovValue">60</span>
+      </div>
+      
+      <div class="stats">
+        <div>FPS: <span id="fps">0</span></div>
+        <div>Total Samples: <span id="totalSamples">0</span></div>
+        <div>Scene Objects: <span id="objectCount">0</span></div>
+      </div>
+      
+      <div class="gpu-info">
+        <div style="font-weight: bold; margin-bottom: 5px;">🖥️ Multi-GPU Status</div>
+        <div id="gpuList"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
