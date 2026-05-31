@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package translation.v1;
+
+option go_package = "voice-translation-gateway/api/proto/v1;translation";
+
+service TranslationService {
+  rpc StreamTranslate(stream TranslateRequest) returns (stream TranslateResponse);
+  rpc ConfigureVAD(VADConfigRequest) returns (VADConfigResponse);
+}
+
+message AudioFrame {
+  bytes data = 1;
+  string codec = 2;
+  int32 sample_rate = 3;
+  int32 channels = 4;
+  int64 timestamp = 5;
+}
+
+message TranslateRequest {
+  oneof payload {
+    AudioFrame audio_frame = 1;
+    SessionConfig session_config = 2;
+    ControlMessage control = 3;
+  }
+}
+
+message SessionConfig {
+  string source_language = 1;
+  string target_language = 2;
+  string asr_provider = 3;
+  string mt_provider = 4;
+}
+
+message ControlMessage {
+  enum Type {
+    UNKNOWN = 0;
+    START = 1;
+    STOP = 2;
+    FLUSH = 3;
+  }
+  Type type = 1;
+}
+
+message TranscriptResult {
+  int64 segment_id = 1;
+  string text = 2;
+  bool is_final = 3;
+  float confidence = 4;
+  int64 start_time = 5;
+  int64 end_time = 6;
+}
+
+message TranslationResult {
+  int64 segment_id = 1;
+  string source_text = 2;
+  string translated_text = 3;
+  string target_language = 4;
+  bool is_final = 5;
+}
+
+message TranslateResponse {
+  oneof payload {
+    TranscriptResult transcript = 1;
+    TranslationResult translation = 2;
+    VADStatus vad_status = 3;
+    Error error = 4;
+  }
+}
+
+message VADStatus {
+  enum State {
+    SILENCE = 0;
+    SPEECH_START = 1;
+    SPEECH_ONGOING = 2;
+    SPEECH_END = 3;
+  }
+  State state = 1;
+  int64 timestamp = 2;
+}
+
+message VADConfigRequest {
+  int32 aggressiveness = 1;
+  int32 silence_duration_ms = 2;
+  float threshold = 3;
+}
+
+message VADConfigResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message Error {
+  int32 code = 1;
+  string message = 2;
+  string details = 3;
+}

@@ -1,0 +1,30 @@
+server:
+  http_addr: ":8080"
+  grpc_addr: ":50051"
+  websocket_path: "/ws"
+  stream_timeout_ms: 120000
+
+vad:
+  aggressiveness: 2
+  silence_duration_ms: 300
+  threshold: 0.5
+  sample_rate: 16000
+  pre_roll_ms: 200
+  post_roll_ms: 150
+  min_segment_ms: 800
+
+asr:
+  provider: "funasr"
+  paddleasr:
+    api_endpoint: "http://localhost:8090/paddlespeech/asr"
+    api_key: ""
+  funasr:
+    api_endpoint: "http://localhost:10095/recognition"
+
+mt:
+  provider: "google"
+  google_translate:
+    api_key: ""
+  deepl:
+    api_key: ""
+    base_url: "https://api-free.deepl.com/v2"

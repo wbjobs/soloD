@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音翻译网关</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .config-section {
+            padding: 25px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .config-item select,
+        .config-item input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .config-item select:focus,
+        .config-item input:focus {
+            border-color: #667eea;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-bar {
+            padding: 15px 30px;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #495057;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.speaking {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e9ecef;
+        }
+
+        .result-column {
+            background: white;
+            padding: 25px 30px;
+        }
+
+        .result-column h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: inline-block;
+        }
+
+        .transcript-box,
+        .translation-box {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .transcript-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .translation-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border-left: 3px solid #764ba2;
+        }
+
+        .segment-id {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .footer {
+            padding: 15px 30px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            background: #f8f9fa;
+        }
+
+        .log-section {
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .log-section h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .log-box {
+            height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #d4d4d4;
+        }
+
+        .log-item {
+            margin-bottom: 4px;
+        }
+
+        .log-item .time {
+            color: #6a9955;
+            margin-right: 8px;
+        }
+
+        .log-item.info {
+            color: #569cd6;
+        }
+
+        .log-item.error {
+            color: #f44747;
+        }
+
+        .log-item.success {
+            color: #6a9955;
+        }
+
+        .vad-config {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .vad-config h4 {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .vad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .adaptive-status {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-card {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .status-card h4 {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .status-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-card .sub {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .status-card.primary .value {
+            color: #667eea;
+        }
+
+        .status-card.success .value {
+            color: #28a745;
+        }
+
+        .status-card.warning .value {
+            color: #ffc107;
+        }
+
+        .status-card.info .value {
+            color: #17a2b8;
+        }
+
+        .tab-container {
+            padding: 0 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .profile-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .profile-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .profile-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .abtest-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .bleu-test {
+            display: grid;
+            grid-template-columns: 1fr 1fr 100px;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .bleu-test input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .bleu-result {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .lang-config-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .lang-config-card {
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .lang-config-card h5 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ 语音翻译网关</h1>
+            <p>实时语音识别 + 机器翻译 | WebSocket + gRPC 双向流式</p>
+        </div>
+
+        <div class="config-section">
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>源语言</label>
+                    <select id="sourceLang">
+                        <option value="zh">中文 (zh-CN)</option>
+                        <option value="en">英语 (en-US)</option>
+                        <option value="ja">日语 (ja-JP)</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label>目标语言</label>
+                    <select id="targetLang">
+                        <option value="en">英语 (en-US)</option>
+                        <option value="zh">中文 (zh-CN)</option>
+                        <option value="ja">日语 (ja-JP)</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label>ASR 引擎</label>
+                    <select id="asrProvider">
+                        <option value="funasr">FunASR</option>
+                        <option value="paddle">PaddleSpeech</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label>翻译引擎</label>
+                    <select id="mtProvider">
+                        <option value="google">Google Translate</option>
+                        <option value="deepl">DeepL</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="vad-config">
+                <h4>VAD 配置</h4>
+                <div class="vad-grid">
+                    <div class="config-item">
+                        <label>灵敏度 (0-3)</label>
+                        <input type="number" id="vadAggressiveness" value="2" min="0" max="3">
+                    </div>
+                    <div class="config-item">
+                        <label>静音切割 (ms)</label>
+                        <input type="number" id="vadSilenceMs" value="300" min="100" max="2000">
+                    </div>
+                    <div class="config-item">
+                        <label>能量阈值</label>
+                        <input type="number" id="vadThreshold" value="0.5" min="0.1" max="2.0" step="0.1">
+                    </div>
+                    <div class="config-item">
+                        <label>前置缓冲 (ms)</label>
+                        <input type="number" id="vadPreRollMs" value="200" min="50" max="1000">
+                    </div>
+                    <div class="config-item">
+                        <label>后置缓冲 (ms)</label>
+                        <input type="number" id="vadPostRollMs" value="150" min="50" max="1000">
+                    </div>
+                    <div class="config-item">
+                        <label>最短片段 (ms)</label>
+                        <input type="number" id="vadMinSegmentMs" value="800" min="200" max="3000">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn" onclick="startRecording()">
+                <span>🎤</span> 开始录音
+            </button>
+            <button class="btn btn-danger" id="stopBtn" onclick="stopRecording()" disabled>
+                <span>⏹️</span> 停止录音
+            </button>
+            <button class="btn" onclick="clearResults()">
+                <span>🗑️</span> 清空结果
+            </button>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">未连接</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="vadStatus"></div>
+                <span id="vadText">静音</span>
+            </div>
+            <div class="status-item">
+                <span>📊 音频片段: <strong id="segmentCount">0</strong></span>
+            </div>
+        </div>
+
+        <div class="adaptive-status">
+            <div class="status-card primary">
+                <h4>🌐 检测语言</h4>
+                <div class="value" id="detectedLang">-</div>
+                <div class="sub" id="langConfidence">置信度: -</div>
+            </div>
+            <div class="status-card success">
+                <h4>⚡ 语速</h4>
+                <div class="value" id="speechRate">-</div>
+                <div class="sub">音节/秒</div>
+            </div>
+            <div class="status-card warning">
+                <h4>⏱️ 动态静音阈值</h4>
+                <div class="value" id="dynamicSilenceMs">-</div>
+                <div class="sub">毫秒</div>
+            </div>
+            <div class="status-card info">
+                <h4>📋 当前配置</h4>
+                <div class="value" id="currentProfile">default</div>
+                <div class="sub">VAD Profile</div>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('config')">配置管理</button>
+                <button class="tab" onclick="switchTab('abtest')">A/B测试</button>
+                <button class="tab" onclick="switchTab('bleu')">BLEU评估</button>
+                <button class="tab" onclick="switchTab('lang')">语言配置</button>
+            </div>
+        </div>
+
+        <div id="configTab" class="tab-content active">
+            <h3 style="margin-bottom: 15px; font-size: 16px;">VAD 配置文件</h3>
+            <div class="profile-selector" id="profileSelector">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" onclick="exportConfig()">📤 导出配置</button>
+                <button class="btn" onclick="document.getElementById('importFile').click()">📥 导入配置</button>
+                <input type="file" id="importFile" style="display: none" accept=".json" onchange="importConfig(event)">
+            </div>
+        </div>
+
+        <div id="abtestTab" class="tab-content">
+            <h3 style="margin-bottom: 15px; font-size: 16px;">A/B 测试控制</h3>
+            <div class="abtest-controls">
+                <input type="text" id="testId" placeholder="测试ID" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; flex: 1;">
+                <button class="btn btn-primary" onclick="startABTest()">开始测试</button>
+                <button class="btn btn-danger" onclick="endABTest()">结束测试</button>
+            </div>
+            <div id="abtestResults" style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                暂无测试数据
+            </div>
+        </div>
+
+        <div id="bleuTab" class="tab-content">
+            <h3 style="margin-bottom: 15px; font-size: 16px;">BLEU 分数评估</h3>
+            <div class="bleu-test">
+                <input type="text" id="referenceText" placeholder="参考译文 (Reference)">
+                <input type="text" id="candidateText" placeholder="候选译文 (Candidate)">
+                <button class="btn btn-primary" onclick="calculateBLEU()">计算</button>
+            </div>
+            <div id="bleuResult" class="bleu-result">
+                BLEU 分数将在这里显示
+            </div>
+        </div>
+
+        <div id="langTab" class="tab-content">
+            <h3 style="margin-bottom: 15px; font-size: 16px;">语言特定配置</h3>
+            <div class="lang-config-grid" id="langConfigGrid">
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="result-column">
+                <h3>📝 语音识别</h3>
+                <div class="transcript-box" id="transcriptBox">
+                    <div style="color: #999; text-align: center; padding: 50px 0;">
+                        点击"开始录音"开始...
+                    </div>
+                </div>
+            </div>
+            <div class="result-column">
+                <h3>🌐 翻译结果</h3>
+                <div class="translation-box" id="translationBox">
+                    <div style="color: #999; text-align: center; padding: 50px 0;">
+                        翻译结果将显示在这里...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h3>📋 日志</h3>
+            <div class="log-box" id="logBox"></div>
+        </div>
+
+        <div class="footer">
+            Voice Translation Gateway | gRPC + WebSocket + VAD + ASR + MT
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let mediaRecorder = null;
+        let audioContext = null;
+        let isRecording = false;
+        let segmentCount = 0;
+
+        function log(message, type = 'info') {
+            const logBox = document.getElementById('logBox');
+            const time = new Date().toLocaleTimeString();
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.innerHTML = `<span class="time">[${time}]</span> ${message}`;
+            logBox.insertBefore(item, logBox.firstChild);
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            if (connected) {
+                dot.className = 'status-dot connected';
+                text.textContent = '已连接';
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = '未连接';
+            }
+        }
+
+        function updateVADStatus(state) {
+            const dot = document.getElementById('vadStatus');
+            const text = document.getElementById('vadText');
+            switch(state) {
+                case 'SPEECH_START':
+                case 'SPEECH_ONGOING':
+                    dot.className = 'status-dot speaking';
+                    text.textContent = '说话中';
+                    break;
+                case 'SPEECH_END':
+                case 'SILENCE':
+                default:
+                    dot.className = 'status-dot';
+                    text.textContent = '静音';
+            }
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            log(`连接到 ${wsUrl}...`);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                log('WebSocket 连接成功', 'success');
+                updateConnectionStatus(true);
+                sendConfig();
+            };
+
+            ws.onclose = () => {
+                log('WebSocket 连接关闭', 'error');
+                updateConnectionStatus(false);
+                if (isRecording) {
+                    stopRecording();
+                }
+            };
+
+            ws.onerror = (error) => {
+                log(`WebSocket 错误: ${error}`, 'error');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleServerMessage(data);
+            };
+        }
+
+        function sendConfig() {
+            const config = {
+                type: 'config',
+                payload: {
+                    sourceLang: document.getElementById('sourceLang').value,
+                    targetLang: document.getElementById('targetLang').value,
+                    asrProvider: document.getElementById('asrProvider').value,
+                    mtProvider: document.getElementById('mtProvider').value,
+                    vadAggressiveness: parseInt(document.getElementById('vadAggressiveness').value),
+                    vadSilenceMs: parseInt(document.getElementById('vadSilenceMs').value),
+                    vadThreshold: parseFloat(document.getElementById('vadThreshold').value),
+                    vadPreRollMs: parseInt(document.getElementById('vadPreRollMs').value),
+                    vadPostRollMs: parseInt(document.getElementById('vadPostRollMs').value),
+                    vadMinSegmentMs: parseInt(document.getElementById('vadMinSegmentMs').value)
+                }
+            };
+            ws.send(JSON.stringify(config));
+            log('已发送会话配置');
+        }
+
+        function handleServerMessage(data) {
+            switch(data.type) {
+                case 'transcript':
+                    addTranscript(data.payload);
+                    break;
+                case 'translation':
+                    addTranslation(data.payload);
+                    break;
+                case 'vadStatus':
+                    updateVADStatus(data.payload.state);
+                    break;
+                case 'error':
+                    log(`错误: ${data.payload.message}`, 'error');
+                    break;
+            }
+        }
+
+        function addTranscript(payload) {
+            segmentCount++;
+            document.getElementById('segmentCount').textContent = segmentCount;
+            
+            const box = document.getElementById('transcriptBox');
+            if (box.querySelector('div[style*="color: #999"]')) {
+                box.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'transcript-item';
+            item.innerHTML = `
+                <div class="segment-id">#${payload.segmentId}</div>
+                <div>${payload.text}</div>
+            `;
+            box.appendChild(item);
+            box.scrollTop = box.scrollHeight;
+            log(`收到识别结果 #${payload.segmentId}`, 'success');
+        }
+
+        function addTranslation(payload) {
+            const box = document.getElementById('translationBox');
+            if (box.querySelector('div[style*="color: #999"]')) {
+                box.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'translation-item';
+            item.innerHTML = `
+                <div class="segment-id">#${payload.segmentId}</div>
+                <div style="color: #666; font-size: 12px; margin-bottom: 4px;">原文: ${payload.sourceText}</div>
+                <div><strong>${payload.translatedText}</strong></div>
+            `;
+            box.appendChild(item);
+            box.scrollTop = box.scrollHeight;
+            log(`收到翻译结果 #${payload.segmentId}`, 'success');
+        }
+
+        async function startRecording() {
+            try {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    connectWebSocket();
+                    await new Promise(resolve => {
+                        const check = setInterval(() => {
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                clearInterval(check);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+
+                processor.onaudioprocess = (e) => {
+                    if (!isRecording) return;
+                    
+                    const audioData = e.inputBuffer.getChannelData(0);
+                    const pcmData = new Int16Array(audioData.length);
+                    for (let i = 0; i < audioData.length; i++) {
+                        pcmData[i] = Math.max(-1, Math.min(1, audioData[i])) * 0x7FFF;
+                    }
+
+                    const bytes = new Uint8Array(pcmData.buffer);
+                    sendAudioFrame(bytes);
+                };
+
+                isRecording = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                log('开始录音...', 'success');
+
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    payload: { action: 'start' }
+                }));
+
+            } catch (error) {
+                log(`录音启动失败: ${error.message}`, 'error');
+            }
+        }
+
+        let frameCount = 0;
+        function sendAudioFrame(data) {
+            frameCount++;
+            if (frameCount % 3 !== 0) return;
+
+            const message = {
+                type: 'audio',
+                payload: {
+                    data: Array.from(data.slice(0, 640)),
+                    codec: 'pcm',
+                    sampleRate: 16000,
+                    channels: 1,
+                    timestamp: Date.now()
+                }
+            };
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    payload: { action: 'stop' }
+                }));
+            }
+
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            log('已停止录音');
+        }
+
+        function clearResults() {
+            document.getElementById('transcriptBox').innerHTML = `
+                <div style="color: #999; text-align: center; padding: 50px 0;">
+                    点击"开始录音"开始...
+                </div>
+            `;
+            document.getElementById('translationBox').innerHTML = `
+                <div style="color: #999; text-align: center; padding: 50px 0;">
+                    翻译结果将显示在这里...
+                </div>
+            `;
+            segmentCount = 0;
+            document.getElementById('segmentCount').textContent = '0';
+            log('已清空结果');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        let currentProfiles = [];
+        let activeProfile = 'default';
+
+        async function loadProfiles() {
+            try {
+                const response = await fetch('/api/v1/profiles');
+                const data = await response.json();
+                currentProfiles = data.profiles;
+                activeProfile = data.activeProfile;
+                renderProfiles();
+            } catch (e) {
+                log('加载配置失败: ' + e.message, 'error');
+            }
+        }
+
+        function renderProfiles() {
+            const selector = document.getElementById('profileSelector');
+            selector.innerHTML = '';
+
+            currentProfiles.forEach(profile => {
+                const btn = document.createElement('button');
+                btn.className = 'profile-btn' + (profile.name === activeProfile ? ' active' : '');
+                btn.textContent = profile.name;
+                btn.onclick = () => setActiveProfile(profile.name);
+                selector.appendChild(btn);
+            });
+
+            document.getElementById('currentProfile').textContent = activeProfile;
+        }
+
+        async function setActiveProfile(profileName) {
+            try {
+                const response = await fetch('/api/v1/profiles/active', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileName })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    activeProfile = profileName;
+                    renderProfiles();
+                    log('已切换到配置: ' + profileName, 'success');
+                }
+            } catch (e) {
+                log('切换配置失败: ' + e.message, 'error');
+            }
+        }
+
+        async function exportConfig() {
+            try {
+                window.location.href = '/api/v1/profiles/export';
+                log('配置已导出');
+            } catch (e) {
+                log('导出失败: ' + e.message, 'error');
+            }
+        }
+
+        async function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const config = JSON.parse(text);
+                const response = await fetch('/api/v1/profiles/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    loadProfiles();
+                    log('配置已导入', 'success');
+                }
+            } catch (e) {
+                log('导入失败: ' + e.message, 'error');
+            }
+            event.target.value = '';
+        }
+
+        async function startABTest() {
+            const testId = document.getElementById('testId').value || 'test_' + Date.now();
+            try {
+                await fetch('/api/v1/abtest/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        testId,
+                        profileNames: ['default', 'aggressive', 'conservative']
+                    })
+                });
+                log('A/B测试已开始: ' + testId, 'success');
+            } catch (e) {
+                log('启动A/B测试失败: ' + e.message, 'error');
+            }
+        }
+
+        async function endABTest() {
+            try {
+                const response = await fetch('/api/v1/abtest/end', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                document.getElementById('abtestResults').innerHTML =
+                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('A/B测试已结束', 'success');
+            } catch (e) {
+                log('结束A/B测试失败: ' + e.message, 'error');
+            }
+        }
+
+        async function calculateBLEU() {
+            const reference = document.getElementById('referenceText').value;
+            const candidate = document.getElementById('candidateText').value;
+
+            if (!reference || !candidate) {
+                log('请输入参考译文和候选译文', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/bleu/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reference, candidate })
+                });
+                const data = await response.json();
+                document.getElementById('bleuResult').innerHTML = `
+                    <div style="font-size: 24px; font-weight: bold; color: #667eea;">
+                        ${(data.score * 100).toFixed(2)}
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        BLEU-4 Score (0-100)<br>
+                        Brevity Penalty: ${data.brevityPenalty.toFixed(3)}
+                    </div>
+                `;
+                log('BLEU 分数计算完成', 'success');
+            } catch (e) {
+                log('计算BLEU失败: ' + e.message, 'error');
+            }
+        }
+
+        async function loadLanguageConfigs() {
+            try {
+                const response = await fetch('/api/v1/languages/configs');
+                const data = await response.json();
+                const grid = document.getElementById('langConfigGrid');
+
+                const langNames = {
+                    'zh': '中文',
+                    'en': '英语',
+                    'ja': '日语'
+                };
+
+                grid.innerHTML = '';
+                Object.entries(data.languages).forEach(([lang, config]) => {
+                    const card = document.createElement('div');
+                    card.className = 'lang-config-card';
+                    card.innerHTML = `
+                        <h5>${langNames[lang] || lang} (${lang.toUpperCase()})</h5>
+                        <div style="font-size: 13px; line-height: 1.8;">
+                            <div>静音切割时长: <strong>${config.silenceDurationMs}ms</strong></div>
+                            <div>VAD能量阈值: <strong>${config.vadThreshold}</strong></div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                log('加载语言配置失败: ' + e.message, 'error');
+            }
+        }
+
+        function updateAdaptiveStatus(lang, confidence, speechRate, silenceMs) {
+            const langNames = { 'zh': '中文', 'en': '英语', 'ja': '日语' };
+            document.getElementById('detectedLang').textContent = langNames[lang] || lang || '-';
+            document.getElementById('langConfidence').textContent = '置信度: ' + (confidence ? (confidence * 100).toFixed(1) + '%' : '-');
+            document.getElementById('speechRate').textContent = speechRate ? speechRate.toFixed(1) : '-';
+            document.getElementById('dynamicSilenceMs').textContent = silenceMs || '-';
+        }
+
+        window.onload = () => {
+            log('页面加载完成，请点击"开始录音"开始');
+            loadProfiles();
+            loadLanguageConfigs();
+            updateAdaptiveStatus(null, null, null, 300);
+        };
+
+        window.onbeforeunload = () => {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
+</body>
+</html>
