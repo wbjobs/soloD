@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三体运动模拟 - Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        #info h2 {
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+        #info p {
+            margin: 5px 0;
+        }
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 100;
+            min-width: 280px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        #control-panel h3 {
+            margin-bottom: 15px;
+            color: #4fc3f7;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #aaa;
+        }
+        .control-group select,
+        .control-group input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #222;
+            color: #fff;
+        }
+        .control-group input[type="range"] {
+            padding: 0;
+        }
+        .value-display {
+            text-align: right;
+            color: #4fc3f7;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #4fc3f7, #2196f3);
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.4);
+        }
+        .scene-description {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="info">
+        <h2>三体运动模拟</h2>
+        <p>鼠标拖拽旋转视角</p>
+        <p>滚轮缩放</p>
+        <p>右键平移</p>
+    </div>
+    <div id="control-panel">
+        <h3>⚙️ 控制面板</h3>
+        
+        <div class="control-group">
+            <label for="scene-select">预设场景</label>
+            <select id="scene-select">
+                <option value="chaotic">混沌初始条件</option>
+                <option value="figure8">8字形解 (Figure-8)</option>
+                <option value="lagrange">拉格朗日等边三角形</option>
+                <option value="binary">双星系统 + 行星</option>
+                <option value="sun_earth_moon">简化日地月系统</option>
+            </select>
+            <div id="scene-desc" class="scene-description">三个质量相等天体的随机初始条件，展示混沌特性</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="g-slider">引力常数 G</label>
+            <input type="range" id="g-slider" min="10" max="200" value="50" step="5">
+            <div class="value-display">G = <span id="g-value">50</span></div>
+        </div>
+        
+        <button id="reset-btn">🔄 重置场景</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
