@@ -1,0 +1,2 @@
+add_executable(write_benchmark write_benchmark.cpp)
+target_link_libraries(write_benchmark PRIVATE timescale_core)
