@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6轴机械臂逆向运动学</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .section h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            padding-left: 5px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .target-info {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .target-info div {
+            margin: 5px 0;
+        }
+        
+        .angles-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .angle-item {
+            background: #e8f5e9;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .angle-item span {
+            display: block;
+            font-weight: bold;
+            color: #2e7d32;
+            font-size: 14px;
+        }
+        
+        .error-info {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .error-info.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error-info.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .instructions {
+            background: #fff3e0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #e65100;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #43a047;
+        }
+        
+        .history-btn {
+            background: #2196F3;
+            margin-top: 10px;
+        }
+        
+        .history-btn:hover {
+            background: #1976D2;
+        }
+        
+        #history-panel {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 12px;
+        }
+        
+        .history-item:hover {
+            background: #e0e0e0;
+        }
+        
+        .history-item .timestamp {
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .trajectory-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 340px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .trajectory-panel h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #FF9800;
+            padding-bottom: 10px;
+        }
+        
+        .waypoint-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+        }
+        
+        .waypoint-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .waypoint-item .coords {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .waypoint-item .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .waypoint-item .delete-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .trajectory-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .control-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .control-btn.add {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .control-btn.add:hover {
+            background: #43a047;
+        }
+        
+        .control-btn.plan {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .control-btn.plan:hover {
+            background: #f57c00;
+        }
+        
+        .control-btn.play {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .control-btn.play:hover {
+            background: #1976D2;
+        }
+        
+        .control-btn.stop {
+            background: #f44336;
+            color: white;
+        }
+        
+        .control-btn.stop:hover {
+            background: #d32f2f;
+        }
+        
+        .control-btn.clear {
+            background: #9E9E9E;
+            color: white;
+            grid-column: span 2;
+        }
+        
+        .control-btn.clear:hover {
+            background: #757575;
+        }
+        
+        .progress-container {
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .trajectory-status {
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .trajectory-status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .trajectory-status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .trajectory-status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .trajectory-panel .section {
+            margin-bottom: 15px;
+        }
+        
+        .trajectory-panel .section h3 {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 8px;
+            padding-left: 5px;
+            border-left: 3px solid #FF9800;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .speed-control label {
+            font-size: 12px;
+            color: #555;
+        }
+        
+        .speed-control input[type="range"] {
+            flex: 1;
+        }
+        
+        .speed-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #FF9800;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="trajectory-panel" class="trajectory-panel">
+        <h2>🎯 轨迹规划</h2>
+        
+        <div class="section">
+            <h3>目标点列表</h3>
+            <div class="waypoint-list" id="waypoint-list">
+                <div style="text-align: center; color: #999; padding: 20px; font-size: 12px;">
+                    暂无目标点<br>点击"添加当前位置"添加
+                </div>
+            </div>
+        </div>
+        
+        <div class="trajectory-controls">
+            <button class="control-btn add" onclick="addCurrentWaypoint()">➕ 添加当前位置</button>
+            <button class="control-btn plan" onclick="planTrajectory()">📐 规划轨迹</button>
+            <button class="control-btn play" onclick="playTrajectory()" id="play-btn">▶️ 播放</button>
+            <button class="control-btn stop" onclick="stopTrajectory()">⏹️ 停止</button>
+            <button class="control-btn clear" onclick="clearWaypoints()">🗑️ 清空所有点</button>
+        </div>
+        
+        <div class="section">
+            <h3>播放速度</h3>
+            <div class="speed-control">
+                <label>速度:</label>
+                <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1">
+                <span class="speed-value" id="speed-value">1.0x</span>
+            </div>
+        </div>
+        
+        <div class="trajectory-status info" id="trajectory-status">
+            准备就绪 - 添加至少2个目标点开始规划
+        </div>
+        
+        <div class="progress-container" id="progress-container" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0%</div>
+        </div>
+    </div>
+    
+    <div id="control-panel">
+        <h1>6轴机械臂 IK 求解</h1>
+        
+        <div class="section">
+            <h3>目标位置</h3>
+            <div class="target-info">
+                <div>X: <span id="target-x">0.000</span> m</div>
+                <div>Y: <span id="target-y">0.000</span> m</div>
+                <div>Z: <span id="target-z">0.300</span> m</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>关节角度 (度)</h3>
+            <div class="angles-display" id="angles-display">
+                <div class="angle-item">J1<span id="j1">0.00</span></div>
+                <div class="angle-item">J2<span id="j2">0.00</span></div>
+                <div class="angle-item">J3<span id="j3">0.00</span></div>
+                <div class="angle-item">J4<span id="j4">0.00</span></div>
+                <div class="angle-item">J5<span id="j5">0.00</span></div>
+                <div class="angle-item">J6<span id="j6">0.00</span></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>求解状态</h3>
+            <div class="error-info success" id="status-info">
+                准备就绪 - 拖拽红色目标球
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>操作说明</h3>
+            <div class="instructions">
+                • 左键拖拽红色球体移动目标位置<br>
+                • 右键旋转视角<br>
+                • 滚轮缩放视图
+            </div>
+        </div>
+        
+        <button class="btn history-btn" onclick="toggleHistory()">历史记录</button>
+    </div>
+    
+    <div id="history-panel">
+        <h3>历史求解记录</h3>
+        <button class="btn" onclick="toggleHistory()" style="margin-bottom: 15px;">关闭</button>
+        <div id="history-list"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="robot_arm.js"></script>
+</body>
+</html>
