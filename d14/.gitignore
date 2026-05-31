@@ -1,0 +1,12 @@
+# Rust
+/target
+Cargo.lock
+
+# Wasm-pack
+/pkg
+
+# Node.js
+node_modules
+dist
+.DS_Store
+*.local

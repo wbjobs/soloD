@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wasm 图像处理 - 批量处理</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Wasm 图像处理应用</h1>
+      
+      <div class="controls">
+        <label class="file-label">
+          <input type="file" id="fileInput" accept="image/*" multiple />
+          选择多张图片
+        </label>
+        <div class="filters">
+          <button id="originalBtn" disabled>原图</button>
+          <button id="grayscaleBtn" disabled>灰度化</button>
+          <button id="invertBtn" disabled>反色</button>
+          <button id="sepiaBtn" disabled>复古</button>
+        </div>
+        <div class="batch-controls">
+          <button id="batchProcessBtn" disabled class="batch-btn">
+            批量处理所有图片
+          </button>
+          <button id="downloadZipBtn" disabled class="batch-btn download-btn">
+            打包下载 ZIP
+          </button>
+          <button id="clearBtn" disabled class="batch-btn clear-btn">
+            清空所有
+          </button>
+        </div>
+        <div class="progress-bar" id="progressBar" style="display: none;">
+          <div class="progress-fill" id="progressFill"></div>
+          <span class="progress-text" id="progressText">0%</span>
+        </div>
+      </div>
+      
+      <div id="imageGrid" class="image-grid"></div>
+      
+      <p id="status" class="status">请选择多张图片开始批量处理</p>
+    </div>
+    
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
