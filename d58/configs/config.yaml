@@ -1,0 +1,13 @@
+server:
+  port: 8080
+  log_level: info
+
+etcd:
+  endpoints:
+    - localhost:2379
+  dial_timeout: 5s
+
+fault_injection:
+  enabled: true
+  max_delay_ms: 30000
+  default_percentage: 100.0

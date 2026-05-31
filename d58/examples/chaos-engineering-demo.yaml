@@ -1,0 +1,162 @@
+# Istio 智能故障注入引擎 - 混沌工程演示配置
+# ==============================================
+# 本示例展示如何使用AI驱动的混沌工程推荐引擎进行系统韧性测试
+
+---
+# 1. Prometheus 指标采集配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-engine-config
+  namespace: istio-system
+data:
+  prometheus_address: "http://prometheus.istio-system:9090"
+  prometheus_query_timeout_seconds: "30"
+  prometheus_lookback_days: "7"
+  prometheus_step_seconds: "60"
+
+  # 孤立森林算法配置
+  isolation_forest_num_trees: "100"
+  isolation_forest_max_samples: "256"
+  isolation_forest_contamination: "0.1"
+  isolation_forest_anomaly_threshold: "0.5"
+  isolation_forest_min_data_points: "10"
+
+  # SLO 配置
+  slo_enabled: "true"
+  slo_max_latency_p95_ms: "1000"
+  slo_max_error_rate_percent: "5.0"
+  slo_min_success_rate_percent: "95.0"
+  slo_max_saturation_percent: "90.0"
+  slo_violation_threshold_count: "3"
+  slo_violation_window_seconds: "300"
+  slo_auto_rollback_enabled: "true"
+
+  # 实验配置
+  default_duration_seconds: "300"
+  monitoring_interval_seconds: "10"
+  max_parallel_experiments: "5"
+
+---
+# 2. 示例故障规则 - 延迟注入
+apiVersion: fault-injection.io/v1
+kind: FaultRule
+metadata:
+  name: payment-service-latency
+  namespace: default
+spec:
+  service: payment-service
+  enabled: true
+  fault:
+    type: delay
+    delay:
+      delay_type: normal
+      normal:
+        mean_ms: 500
+        std_dev_ms: 200
+        min_ms: 100
+        max_ms: 2000
+  match:
+    percentage: 30.0
+    headers:
+      user-agent:
+        prefix: "Mozilla"
+  timeout_aware:
+    enabled: true
+    timeout_threshold_percent: 80.0
+    default_timeout_ms: 3000
+    read_from_destination_rule: true
+  connection_leak_detect:
+    enabled: true
+    check_interval_ms: 5000
+    max_connection_growth: 50
+    leak_threshold: 100
+    force_cleanup_enabled: true
+  description: "延迟注入 - 正态分布，用于测试服务超时处理能力"
+
+---
+# 3. 示例故障规则 - 异常注入
+apiVersion: fault-injection.io/v1
+kind: FaultRule
+metadata:
+  name: fraud-detection-errors
+  namespace: default
+spec:
+  service: fraud-detection
+  enabled: true
+  fault:
+    type: abort
+    abort:
+      abort_type: http_status
+      http_status: 503
+  match:
+    percentage: 20.0
+    paths:
+      - exact: "/api/v1/verify"
+  timeout_aware:
+    enabled: true
+    timeout_threshold_percent: 80.0
+    default_timeout_ms: 5000
+  description: "503错误注入 - 测试下游服务容错能力"
+
+---
+# 4. 金丝雀模式示例
+apiVersion: fault-injection.io/v1
+kind: FaultRule
+metadata:
+  name: canary-chaos-test
+  namespace: default
+spec:
+  service: order-service
+  enabled: true
+  canary_mode:
+    enabled: true
+    header:
+      x-chaos-test: "enabled"
+      x-env: "staging"
+  fault:
+    type: disconnect
+    disconnect:
+      type: tcp_reset
+  match:
+    percentage: 100.0
+  description: "金丝雀模式 - 仅对测试流量生效"
+
+---
+# 5. 推荐实验组合示例
+# 这是 AI 引擎可能推荐的实验组合示例
+recommendations:
+  - name: "payment-service-resilience-test"
+    description: "Payment service latency and error rate detected anomalies"
+    priority: 1
+    confidence: 0.85
+    weak_points:
+      - service: payment-service
+        metric_type: latency
+        severity: high
+        anomaly_score: 0.78
+        description: "High P95 latency (1200ms vs normal 300ms)"
+      - service: payment-service
+        metric_type: error_rate
+        severity: medium
+        anomaly_score: 0.55
+        description: "Elevated error rate 2.5%"
+    impact_analysis:
+      estimated_affected_services: 4
+      estimated_traffic_impact_percent: 30.0
+      estimated_error_rate_increase_percent: 15.0
+      estimated_latency_increase_ms: 1500.0
+      risk_level: high
+      recommended_blast_radius_percent: 30.0
+    estimated_rollback_time_seconds: 120
+    fault_combinations:
+      - target_service: payment-service
+        fault_type: delay
+        duration_seconds: 300
+        match_percentage: 30.0
+        expected_impact: "Increase latency to validate circuit breaker behavior"
+      - target_service: fraud-detection
+        fault_type: abort
+        duration_seconds: 180
+        match_percentage: 20.0
+        expected_impact: "Validate fallback mechanism when downstream fails"

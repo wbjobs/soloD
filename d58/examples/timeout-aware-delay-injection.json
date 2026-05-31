@@ -1,0 +1,46 @@
+{
+  "name": "timeout-aware-delay-injection",
+  "description": "延迟注入示例 - 具备超时保护功能。当注入延迟超过超时阈值的80%时，提前返回504错误防止连接泄漏。",
+  "namespace": "default",
+  "service": "productpage",
+  "enabled": true,
+  "canary_mode": {
+    "enabled": true,
+    "header": {
+      "x-test-group": "chaos-engineering"
+    }
+  },
+  "match": {
+    "percentage": 30.0,
+    "paths": [
+      {
+        "prefix": "/api/v1/"
+      }
+    ]
+  },
+  "fault": {
+    "type": "delay",
+    "delay": {
+      "delay_type": "normal",
+      "normal": {
+        "mean_ms": 2000,
+        "std_dev_ms": 500,
+        "min_ms": 500,
+        "max_ms": 5000
+      }
+    }
+  },
+  "timeout_aware": {
+    "enabled": true,
+    "timeout_threshold_pct": 80.0,
+    "default_timeout_ms": 3000,
+    "read_from_destination_rule": true
+  },
+  "connection_leak_detect": {
+    "enabled": true,
+    "check_interval_ms": 5000,
+    "max_connection_growth": 50,
+    "leak_threshold": 100,
+    "force_cleanup_enabled": true
+  }
+}

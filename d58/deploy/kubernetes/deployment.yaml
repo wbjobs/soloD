@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fault-injection-engine
+  namespace: istio-system
+  labels:
+    app: fault-injection-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fault-injection-engine
+  template:
+    metadata:
+      labels:
+        app: fault-injection-engine
+    spec:
+      serviceAccountName: fault-injection-engine
+      containers:
+      - name: fault-injection-engine
+        image: fault-injection-engine:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8080"
+        - name: ETCD_ENDPOINTS
+          value: "etcd:2379"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fault-injection-engine
+  namespace: istio-system
+  labels:
+    app: fault-injection-engine
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: fault-injection-engine
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fault-injection-engine
+  namespace: istio-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fault-injection-engine
+rules:
+- apiGroups: ["networking.istio.io"]
+  resources: ["envoyfilters"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fault-injection-engine
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fault-injection-engine
+subjects:
+- kind: ServiceAccount
+  name: fault-injection-engine
+  namespace: istio-system
