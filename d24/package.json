@@ -1,0 +1,13 @@
+{
+  "name": "order-flow-visualization",
+  "version": "1.0.0",
+  "description": "High-frequency order flow visualization with ECharts",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
+}

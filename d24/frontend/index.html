@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高频订单流数据可视化</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #00d4ff;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+        .stat-card {
+            background: #16213e;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-group label {
+            font-size: 14px;
+            color: #aaa;
+        }
+        .control-group input,
+        .control-group select {
+            background: #16213e;
+            border: 1px solid #333;
+            color: #eee;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+        }
+        .btn.active {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        }
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-wrapper {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 15px;
+            position: relative;
+        }
+        .chart-title {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chart {
+            width: 100%;
+            height: 400px;
+        }
+        .drawing-canvas {
+            position: absolute;
+            top: 55px;
+            left: 15px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .drawing-canvas.active {
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+        .color-picker {
+            display: flex;
+            gap: 5px;
+        }
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .color-btn.active {
+            border-color: white;
+        }
+        .annotations-list {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .annotations-list h3 {
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+        .annotation-item {
+            padding: 8px 12px;
+            background: #0f0f23;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .annotation-time {
+            color: #888;
+        }
+        .annotation-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 高频订单流数据可视化</h1>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="orderCount">0</div>
+                <div class="stat-label">总订单数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="buyPressure">0</div>
+                <div class="stat-label">买压力</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sellPressure">0</div>
+                <div class="stat-label">卖压力</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="pressureRatio">1</div>
+                <div class="stat-label">买卖比</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>时间范围:</label>
+            <input type="datetime-local" id="startTime">
+            <span>至</span>
+            <input type="datetime-local" id="endTime">
+            <button class="btn" onclick="filterByTime()">筛选</button>
+            <button class="btn" onclick="resetFilter()">重置</button>
+        </div>
+    </div>
+
+    <div class="controls replay-controls">
+        <div class="control-group">
+            <label>⏯️ 订单流回放:</label>
+            <button class="btn" id="loadReplayBtn" onclick="loadReplayData()">📥 加载历史数据</button>
+            <button class="btn" id="playBtn" onclick="togglePlay()">▶️ 播放</button>
+            <button class="btn" onclick="stopReplay()">⏹️ 停止</button>
+        </div>
+        <div class="control-group">
+            <label>回放速度:</label>
+            <select id="playSpeed" onchange="setPlaySpeed(this.value)">
+                <option value="0.1">0.1x</option>
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="2">2x</option>
+                <option value="5">5x</option>
+                <option value="10">10x</option>
+            </select>
+            <span style="margin-left: 10px; color: #aaa;" id="replayProgress">已加载: 0 笔</span>
+        </div>
+        <div class="control-group">
+            <label>画笔标注:</label>
+            <button class="btn" id="drawBtn" onclick="toggleDrawing()">
+                🖌️ 开始标注
+            </button>
+            <div class="color-picker">
+                <div class="color-btn active" style="background: #ff6b6b" onclick="setDrawColor('#ff6b6b')"></div>
+                <div class="color-btn" style="background: #ffd93d" onclick="setDrawColor('#ffd93d')"></div>
+                <div class="color-btn" style="background: #6bcb77" onclick="setDrawColor('#6bcb77')"></div>
+                <div class="color-btn" style="background: #4d96ff" onclick="setDrawColor('#4d96ff')"></div>
+            </div>
+        </div>
+        <div class="control-group">
+            <button class="btn" onclick="clearAnnotations()">清除标注</button>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-wrapper" id="pressureWrapper">
+            <div class="chart-title">
+                <span>📈 买卖压力图</span>
+                <span style="font-size: 12px; color: #888;">Buy vs Sell Pressure</span>
+            </div>
+            <div id="pressureChart" class="chart"></div>
+            <canvas class="drawing-canvas" id="pressureCanvas"></canvas>
+        </div>
+        <div class="chart-wrapper" id="waterfallWrapper">
+            <div class="chart-title">
+                <span>🌊 逐笔订单瀑布图</span>
+                <span style="font-size: 12px; color: #888;">Order Waterfall</span>
+            </div>
+            <div id="waterfallChart" class="chart"></div>
+            <canvas class="drawing-canvas" id="waterfallCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="annotations-list">
+        <h3>📝 标注记录</h3>
+        <div id="annotationsList"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/drawing.js"></script>
+</body>
+</html>
