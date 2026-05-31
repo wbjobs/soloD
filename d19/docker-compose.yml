@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+    networks:
+      - iot-network
+
+  node-red:
+    build: ./node-red
+    container_name: node-red
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./node-red-data:/data
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    networks:
+      - iot-network
+
+  alarm-server:
+    build: .
+    container_name: alarm-server
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - iot-network
+
+networks:
+  iot-network:
+    driver: bridge
