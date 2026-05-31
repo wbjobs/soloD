@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+.cm-editor {
+  height: 100%;
+}
+
+.cm-scroller {
+  overflow: auto;
+}
+
+.remote-cursor {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -1px;
+}
+
+.remote-cursor-label {
+  position: absolute;
+  top: -1.2em;
+  left: 0;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: white;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.markdown-preview {
+  line-height: 1.6;
+}
+
+.markdown-preview h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.3em;
+}
+
+.markdown-preview h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.3em;
+}
+
+.markdown-preview h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+}
+
+.markdown-preview p {
+  margin: 1em 0;
+}
+
+.markdown-preview ul, .markdown-preview ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.markdown-preview li {
+  margin: 0.5em 0;
+}
+
+.markdown-preview code {
+  background-color: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-preview pre {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown-preview pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid #6366f1;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #6b7280;
+}
+
+.markdown-preview a {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+.markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.markdown-preview th, .markdown-preview td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.markdown-preview th {
+  background-color: #f9fafb;
+  font-weight: bold;
+}

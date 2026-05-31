@@ -1,0 +1,25 @@
+{
+  "name": "markdown-collab-server",
+  "version": "1.0.0",
+  "description": "Yjs WebSocket server for collaborative markdown editing",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "lib0": "^0.2.93",
+    "level": "^8.0.1",
+    "ws": "^8.16.0",
+    "y-leveldb": "^0.1.2",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.15"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}
