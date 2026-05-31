@@ -1,0 +1,19 @@
+{
+  "name": "voxel-editor",
+  "version": "1.0.0",
+  "description": "WebGL Voxel Editor with Three.js and Cannon.js physics",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["voxel", "threejs", "webgl", "physics"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

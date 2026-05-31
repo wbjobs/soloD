@@ -1,0 +1,273 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a2e;
+}
+
+#container {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+#ui {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.panel {
+    background: rgba(26, 26, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    color: white;
+    width: 280px;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+}
+
+.panel h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #3498db;
+    text-align: center;
+}
+
+.info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 15px;
+}
+
+.info p {
+    font-size: 12px;
+    margin: 4px 0;
+    color: #aaa;
+}
+
+.stats {
+    margin-bottom: 15px;
+}
+
+.stats p {
+    font-size: 13px;
+    margin: 5px 0;
+}
+
+.stats span {
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+.controls {
+    margin-bottom: 15px;
+}
+
+.controls label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #ddd;
+}
+
+.color-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.color-btn {
+    width: 30px;
+    height: 30px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+}
+
+.color-btn.active {
+    border-color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: #3498db;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#generateTerrain {
+    background: #2ecc71;
+}
+
+#generateTerrain:hover {
+    background: #27ae60;
+}
+
+#clearAll {
+    background: #e74c3c;
+}
+
+#clearAll:hover {
+    background: #c0392b;
+}
+
+.save-load-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#sceneName {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+}
+
+#sceneName::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#sceneName:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.btn-secondary {
+    background: #34495e !important;
+}
+
+.btn-secondary:hover {
+    background: #2c3e50 !important;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal {
+    background: rgba(26, 26, 46, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: white;
+}
+
+.modal h3 {
+    margin-bottom: 16px;
+    color: #3498db;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.scene-item {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scene-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.scene-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+}
+
+.scene-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #888;
+}
+
+.scene-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.scene-actions button {
+    padding: 6px 12px;
+    font-size: 12px;
+    width: auto;
+    margin: 0;
+}
+
+.btn-load {
+    background: #27ae60 !important;
+}
+
+.btn-delete {
+    background: #e74c3c !important;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 24px;
+    color: #888;
+}

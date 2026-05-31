@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体素编辑器 - Voxel Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="ui">
+        <div class="panel">
+            <h2>体素编辑器</h2>
+            <div class="info">
+                <p>左键: 放置方块</p>
+                <p>右键: 破坏方块</p>
+                <p>WASD: 移动</p>
+                <p>空格: 上升</p>
+                <p>Shift: 下降</p>
+            </div>
+            <div class="stats">
+                <p>方块数: <span id="blockCount">0</span></p>
+                <p>FPS: <span id="fps">0</span></p>
+            </div>
+            <div class="controls">
+                <label>当前方块:</label>
+                <div class="color-picker">
+                    <button class="color-btn active" data-color="#e74c3c"></button>
+                    <button class="color-btn" data-color="#3498db"></button>
+                    <button class="color-btn" data-color="#2ecc71"></button>
+                    <button class="color-btn" data-color="#f1c40f"></button>
+                    <button class="color-btn" data-color="#9b59b6"></button>
+                    <button class="color-btn" data-color="#1abc9c"></button>
+                </div>
+            </div>
+            <button id="generateTerrain">生成地形</button>
+            <button id="clearAll">清空所有</button>
+            <div class="save-load-section">
+                <input type="text" id="sceneName" placeholder="场景名称" value="我的场景">
+                <button id="saveScene" class="btn-secondary">💾 保存场景</button>
+                <button id="loadScene" class="btn-secondary">📂 加载场景</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
