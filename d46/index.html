@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC 屏幕共享与标注</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>WebRTC 屏幕共享与标注</h1>
+        
+        <div class="connection-panel">
+            <div class="panel-section">
+                <h3>连接控制</h3>
+                <button id="startBtn" class="btn btn-primary">开始屏幕共享</button>
+                <button id="stopBtn" class="btn btn-danger" disabled>停止共享</button>
+            </div>
+            
+            <div class="panel-section">
+                <h3>信令</h3>
+                <div class="signal-group">
+                    <button id="createOfferBtn" class="btn btn-secondary">创建 Offer</button>
+                    <button id="copyOfferBtn" class="btn btn-secondary" disabled>复制 Offer</button>
+                </div>
+                <textarea id="offerSdp" placeholder="Offer SDP 将显示在这里..." readonly></textarea>
+                
+                <div class="signal-group">
+                    <input type="text" id="answerSdp" placeholder="粘贴 Answer SDP 到这里...">
+                    <button id="setAnswerBtn" class="btn btn-secondary">设置 Answer</button>
+                </div>
+                
+                <div class="signal-group">
+                    <input type="text" id="remoteOfferSdp" placeholder="粘贴远程 Offer SDP...">
+                    <button id="createAnswerBtn" class="btn btn-secondary">创建 Answer</button>
+                    <button id="copyAnswerBtn" class="btn btn-secondary" disabled>复制 Answer</button>
+                </div>
+                <textarea id="answerOutput" placeholder="Answer SDP 将显示在这里..." readonly></textarea>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <div class="video-wrapper">
+                <h3>本地屏幕</h3>
+                <video id="localVideo" autoplay muted playsinline></video>
+                <canvas id="localCanvas"></canvas>
+            </div>
+            
+            <div class="video-wrapper">
+                <h3>远程屏幕</h3>
+                <video id="remoteVideo" autoplay playsinline></video>
+                <canvas id="remoteCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="drawing-panel">
+            <h3>画笔控制</h3>
+            <div class="drawing-controls">
+                <label>
+                    颜色:
+                    <input type="color" id="colorPicker" value="#ff0000">
+                </label>
+                <label>
+                    线宽:
+                    <input type="range" id="lineWidth" min="1" max="20" value="3">
+                    <span id="lineWidthValue">3</span>
+                </label>
+                <button id="clearCanvasBtn" class="btn btn-secondary">清除画布</button>
+            </div>
+        </div>
+
+        <div class="recording-panel">
+            <h3>录制回放</h3>
+            <div class="recording-controls">
+                <div class="control-group">
+                    <button id="recordBtn" class="btn btn-record">🔴 开始录制</button>
+                    <button id="stopRecordBtn" class="btn btn-danger" disabled>⏹ 停止录制</button>
+                </div>
+                <div class="control-group">
+                    <button id="playBtn" class="btn btn-play" disabled>▶ 播放</button>
+                    <button id="pauseBtn" class="btn btn-secondary" disabled>⏸ 暂停</button>
+                    <button id="stopPlayBtn" class="btn btn-danger" disabled>⏹ 停止</button>
+                </div>
+                <div class="control-group">
+                    <label>
+                        倍速:
+                        <select id="playbackSpeed">
+                            <option value="0.25">0.25x</option>
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                            <option value="4">4x</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <button id="exportBtn" class="btn btn-secondary" disabled>💾 导出录制</button>
+                    <button id="importBtn" class="btn btn-secondary">📂 导入录制</button>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                </div>
+            </div>
+            <div class="timeline">
+                <div class="timeline-info">
+                    <span id="currentTime">00:00</span>
+                    <span id="totalTime">00:00</span>
+                </div>
+                <input type="range" id="timelineSlider" min="0" max="100" value="0" disabled>
+            </div>
+            <div class="recording-status" id="recordingStatus">
+                状态: 待机 | 录制时长: <span id="recordDuration">00:00</span> | 事件数: <span id="eventCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
