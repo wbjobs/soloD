@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N-Body 引力模拟</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #0a0a1a;
+        }
+        .status {
+            margin-top: 10px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <h1>N-Body 引力模拟</h1>
+    <canvas id="simulationCanvas" width="800" height="600"></canvas>
+    <div class="status" id="status">正在连接服务器...</div>
+
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        
+        const scale = 30;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        let ws;
+        let reconnectAttempts = 0;
+        const maxReconnectDelay = 5000;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+        let blackholeCount = 0;
+        
+        function getReconnectDelay() {
+            return Math.min(1000 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay);
+        }
+        
+        function screenToSimulation(screenX, screenY) {
+            const x = (screenX - centerX) / scale;
+            const y = (screenY - centerY) / scale;
+            return { x, y };
+        }
+        
+        function sendBlackhole(x, y) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = JSON.stringify({
+                    type: 'add_blackhole',
+                    x: x,
+                    y: y
+                });
+                ws.send(message);
+                blackholeCount++;
+                updateStatus();
+            }
+        }
+        
+        function updateStatus() {
+            const now = Date.now();
+            if (now - lastFpsUpdate >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (now - lastFpsUpdate));
+                status.textContent = `已连接 - 帧率: ${fps} fps | 黑洞: ${blackholeCount}个`;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            } else {
+                const currentFps = Math.round(frameCount * 1000 / (now - lastFpsUpdate + 1));
+                status.textContent = `已连接 - 帧率: ${currentFps} fps | 黑洞: ${blackholeCount}个`;
+            }
+        }
+        
+        function connect() {
+            status.textContent = `正在连接服务器... (尝试 ${reconnectAttempts + 1})`;
+            ws = new WebSocket('ws://localhost:8765');
+            
+            ws.onopen = function() {
+                reconnectAttempts = 0;
+                blackholeCount = 0;
+                status.textContent = '已连接 - 点击画布添加黑洞';
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    drawParticles(data.positions, data.blackhole_indices || []);
+                    
+                    frameCount++;
+                    updateStatus();
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket closed:', event.code, event.reason);
+                const delay = getReconnectDelay();
+                status.textContent = `连接已断开，${Math.round(delay/1000)}秒后重连...`;
+                reconnectAttempts++;
+                setTimeout(connect, delay);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function drawParticles(positions, blackholeIndices) {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const blackholeSet = new Set(blackholeIndices);
+            
+            for (let i = 0; i < positions.length; i++) {
+                const pos = positions[i];
+                const x = centerX + pos[0] * scale;
+                const y = centerY + pos[1] * scale;
+                
+                if (blackholeSet.has(i)) {
+                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+                    gradient.addColorStop(0, '#ff4444');
+                    gradient.addColorStop(0.5, '#880000');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#ff6666';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        canvas.addEventListener('click', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            const simPos = screenToSimulation(screenX, screenY);
+            console.log(`Adding blackhole at simulation coordinates: (${simPos.x.toFixed(2)}, ${simPos.y.toFixed(2)})`);
+            sendBlackhole(simPos.x, simPos.y);
+        });
+        
+        window.addEventListener('beforeunload', function() {
+            if (ws) {
+                ws.close();
+            }
+        });
+        
+        connect();
+    </script>
+</body>
+</html>
