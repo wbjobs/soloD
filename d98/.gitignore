@@ -1,0 +1,25 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Rust
+examples/rust/target/
+Cargo.lock
+
+# Wasm uploads
+uploads/*.wasm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
