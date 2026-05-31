@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: task-scheduler
+  
+  datasource:
+    url: jdbc:sqlite:tasks.db
+    driver-class-name: org.sqlite.JDBC
+    username: ""
+    password: ""
+  
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          max-interval: 10000
+          multiplier: 2
+
+rabbitmq:
+  queue:
+    task: task_queue
+    result: result_queue
+    control: control_queue
+
+logging:
+  level:
+    org.springframework.amqp: DEBUG
+    com.dispatch.scheduler: DEBUG
