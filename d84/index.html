@@ -1,0 +1,82 @@
+&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;质点-弹簧系统软体模拟 | Mass-Spring Soft Body Simulation&lt;/title&gt;
+    &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;header class="header"&gt;
+            &lt;h1 class="title"&gt;🍮 果冻软体物理模拟&lt;/h1&gt;
+            &lt;p class="subtitle"&gt;Rust + WebAssembly + HTML5 Canvas&lt;/p&gt;
+        &lt;/header&gt;
+        
+        &lt;div class="canvas-wrapper"&gt;
+            &lt;canvas id="simulation"&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="controls"&gt;
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;物理迭代:&lt;/label&gt;
+                &lt;input type="range" id="iterations" min="1" max="10" value="5"&gt;
+                &lt;span id="iterations-value"&gt;5&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;作用力:&lt;/label&gt;
+                &lt;input type="range" id="force" min="5" max="50" value="20"&gt;
+                &lt;span id="force-value"&gt;20&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;作用半径:&lt;/label&gt;
+                &lt;input type="range" id="radius" min="30" max="200" value="80"&gt;
+                &lt;span id="radius-value"&gt;80&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="controls physics-controls"&gt;
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;阻尼系数:&lt;/label&gt;
+                &lt;input type="range" id="damping" min="0.5" max="1" step="0.01" value="0.99"&gt;
+                &lt;span id="damping-value"&gt;0.99&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;环境摩擦:&lt;/label&gt;
+                &lt;input type="range" id="friction" min="0" max="0.1" step="0.001" value="0.01"&gt;
+                &lt;span id="friction-value"&gt;0.01&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;重力:&lt;/label&gt;
+                &lt;input type="range" id="gravity" min="0" max="2" step="0.1" value="0.5"&gt;
+                &lt;span id="gravity-value"&gt;0.5&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="control-group"&gt;
+                &lt;label&gt;弹簧刚度:&lt;/label&gt;
+                &lt;input type="range" id="stiffness" min="0.1" max="1" step="0.05" value="0.5"&gt;
+                &lt;span id="stiffness-value"&gt;0.5&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;button id="reset-btn" class="btn"&gt;🔄 重置&lt;/button&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="info"&gt;
+            &lt;p&gt;&lt;strong&gt;操作说明:&lt;/strong&gt; 按住鼠标左键拖拽，对果冻施加力。&lt;/p&gt;
+            &lt;p&gt;&lt;strong&gt;物理参数说明:&lt;/strong&gt;
+                &lt;span class="param-hint"&gt;阻尼:&lt;/span&gt; 振动衰减速度，值越大衰减越慢 |
+                &lt;span class="param-hint"&gt;摩擦:&lt;/span&gt; 环境阻力，值越大停止越快 |
+                &lt;span class="param-hint"&gt;重力:&lt;/span&gt; 向下的加速度 |
+                &lt;span class="param-hint"&gt;刚度:&lt;/span&gt; 弹簧硬度，值越大越硬
+            &lt;/p&gt;
+            &lt;p id="fps-counter"&gt;FPS: 0&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;script src="app-js-only.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
