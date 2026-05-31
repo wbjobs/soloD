@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姿态驱动 CSS 火柴人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(100, 200, 255, 0.3);
+        }
+
+        #video {
+            width: 400px;
+            height: 300px;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 400px;
+            height: 300px;
+            transform: scaleX(-1);
+        }
+
+        .stickman-container {
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 30px rgba(100, 200, 255, 0.2);
+            position: relative;
+        }
+
+        .stickman {
+            position: relative;
+            width: 200px;
+            height: 350px;
+        }
+
+        .head {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #64c8ff;
+            border-radius: 50%;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            box-shadow: 0 0 15px #64c8ff;
+            transition: all 0.1s ease-out;
+        }
+
+        .torso {
+            position: absolute;
+            width: 8px;
+            height: 80px;
+            background: linear-gradient(to bottom, #64c8ff, #a78bfa);
+            left: 50%;
+            top: 40px;
+            transform: translateX(-50%);
+            transform-origin: top center;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+            transition: all 0.1s ease-out;
+        }
+
+        .arm {
+            position: absolute;
+            width: 8px;
+            height: 60px;
+            background: linear-gradient(to bottom, #64c8ff, #34d399);
+            border-radius: 4px;
+            transform-origin: top center;
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+            transition: all 0.1s ease-out;
+        }
+
+        .forearm {
+            position: absolute;
+            width: 8px;
+            height: 55px;
+            background: linear-gradient(to bottom, #34d399, #fbbf24);
+            border-radius: 4px;
+            transform-origin: top center;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            transition: all 0.1s ease-out;
+        }
+
+        .upper-arm-left {
+            top: 45px;
+            left: 96px;
+        }
+
+        .forearm-left {
+            top: 105px;
+            left: 96px;
+        }
+
+        .upper-arm-right {
+            top: 45px;
+            right: 96px;
+        }
+
+        .forearm-right {
+            top: 105px;
+            right: 96px;
+        }
+
+        .leg {
+            position: absolute;
+            width: 8px;
+            height: 70px;
+            background: linear-gradient(to bottom, #a78bfa, #f472b6);
+            border-radius: 4px;
+            transform-origin: top center;
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+            transition: all 0.1s ease-out;
+        }
+
+        .lower-leg {
+            position: absolute;
+            width: 8px;
+            height: 65px;
+            background: linear-gradient(to bottom, #f472b6, #fb7185);
+            border-radius: 4px;
+            transform-origin: top center;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+            transition: all 0.1s ease-out;
+        }
+
+        .upper-leg-left {
+            top: 120px;
+            left: 90px;
+        }
+
+        .lower-leg-left {
+            top: 190px;
+            left: 90px;
+        }
+
+        .upper-leg-right {
+            top: 120px;
+            right: 90px;
+        }
+
+        .lower-leg-right {
+            top: 190px;
+            right: 90px;
+        }
+
+        .stickman.celebrating {
+            animation: celebrateJump 0.8s ease-in-out 3;
+        }
+
+        .stickman.celebrating .head {
+            animation: celebrateHead 0.8s ease-in-out 3;
+        }
+
+        .stickman.celebrating .arm {
+            animation: celebrateArms 0.8s ease-in-out 3;
+        }
+
+        .stickman.celebrating .forearm {
+            animation: celebrateForearms 0.8s ease-in-out 3;
+        }
+
+        .stickman.celebrating .leg {
+            animation: celebrateLegs 0.8s ease-in-out 3;
+        }
+
+        .stickman.celebrating .lower-leg {
+            animation: celebrateLowerLegs 0.8s ease-in-out 3;
+        }
+
+        @keyframes celebrateJump {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-40px); }
+            50% { transform: translateY(-30px); }
+            75% { transform: translateY(-40px); }
+        }
+
+        @keyframes celebrateHead {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            25% { transform: translateX(-50%) scale(1.2); box-shadow: 0 0 30px #ff6b6b, 0 0 60px #ff6b6b; }
+            50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 25px #64c8ff, 0 0 50px #64c8ff; }
+            75% { transform: translateX(-50%) scale(1.2); box-shadow: 0 0 30px #ff6b6b, 0 0 60px #ff6b6b; }
+        }
+
+        @keyframes celebrateArms {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-150deg); background: linear-gradient(to bottom, #ff6b6b, #feca57); }
+            50% { transform: rotate(-120deg); }
+            75% { transform: rotate(-150deg); background: linear-gradient(to bottom, #ff6b6b, #feca57); }
+        }
+
+        @keyframes celebrateForearms {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-60deg); background: linear-gradient(to bottom, #feca57, #48dbfb); }
+            50% { transform: rotate(-30deg); }
+            75% { transform: rotate(-60deg); background: linear-gradient(to bottom, #feca57, #48dbfb); }
+        }
+
+        @keyframes celebrateLegs {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(30deg); }
+            50% { transform: rotate(-30deg); }
+            75% { transform: rotate(30deg); }
+        }
+
+        @keyframes celebrateLowerLegs {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-45deg); background: linear-gradient(to bottom, #ff9ff3, #54a0ff); }
+            50% { transform: rotate(45deg); }
+            75% { transform: rotate(-45deg); background: linear-gradient(to bottom, #ff9ff3, #54a0ff); }
+        }
+
+        .action-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .action-indicator.detecting {
+            background: rgba(254, 202, 87, 0.9);
+            color: #1a1a2e;
+        }
+
+        .action-indicator.triggered {
+            background: rgba(92, 230, 172, 0.9);
+            color: #1a1a2e;
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #64c8ff, #a78bfa);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgba(100, 200, 255, 0.1);
+            border-radius: 5px;
+            border: 1px solid rgba(100, 200, 255, 0.3);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #64c8ff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px 20px;
+            background: rgba(100, 200, 255, 0.05);
+            border-radius: 8px;
+            max-width: 800px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions h3 {
+            color: #64c8ff;
+            margin-bottom: 10px;
+        }
+
+        .instructions code {
+            background: rgba(100, 200, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎭 姿态驱动 CSS 火柴人</h1>
+    
+    <div class="container">
+        <div class="video-container">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="stickman-container">
+            <div class="action-indicator" id="actionIndicator" style="display: none;">
+                举起双手
+            </div>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="stickman" id="stickman">
+                <div class="head" id="head"></div>
+                <div class="torso" id="torso"></div>
+                
+                <div class="arm upper-arm-left" id="upper-arm-left"></div>
+                <div class="forearm forearm-left" id="forearm-left"></div>
+                
+                <div class="arm upper-arm-right" id="upper-arm-right"></div>
+                <div class="forearm forearm-right" id="forearm-right"></div>
+                
+                <div class="leg upper-leg-left" id="upper-leg-left"></div>
+                <div class="lower-leg lower-leg-left" id="lower-leg-left"></div>
+                
+                <div class="leg upper-leg-right" id="upper-leg-right"></div>
+                <div class="lower-leg lower-leg-right" id="lower-leg-right"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status" id="status">
+        <span class="loading"></span>
+        <span>正在初始化...</span>
+    </div>
+
+    <div class="instructions">
+        <h3>🎮 动作识别功能</h3>
+        <p><strong>🤚 触发方式：</strong>举起双手（两个手腕高于肩膀）并保持 2 秒</p>
+        <p><strong>🎉 效果：</strong>火柴人会播放庆祝跳跃动画！</p>
+        <br>
+        <h3>🚀 如何设置本地开发服务器</h3>
+        <p><strong>方法一：使用 http-server（Node.js）</strong></p>
+        <code>npm install -g http-server && http-server -c-1</code>
+        <p>然后访问：http://localhost:8080</p>
+        <br>
+        <p><strong>方法二：使用 Vite（推荐）</strong></p>
+        <code>npm create vite@latest . -- --vanilla && npm install && npm run dev</code>
+        <br><br>
+        <p><strong>💡 核心角度计算原理（Math.atan2）</strong></p>
+        <code>function calculateAngle(p1, p2) {
+    // p1: 起点（如肩膀）, p2: 终点（如手肘）
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    // Math.atan2(dy, dx) 返回弧度，转换为角度
+    const radians = Math.atan2(dy, dx);
+    const degrees = radians * (180 / Math.PI);
+    // 调整为CSS旋转坐标系（0度向上，顺时针为正）
+    return degrees + 90;
+}</code>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.0.0/dist/pose-detection.min.js"></script>
+    
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const stickmanEl = document.getElementById('stickman');
+        const actionIndicatorEl = document.getElementById('actionIndicator');
+        const progressBarEl = document.getElementById('progressBar');
+        const progressFillEl = document.getElementById('progressFill');
+        
+        let detector;
+        let isModelLoaded = false;
+        let animationFrameId;
+        
+        const ACTION_CONFIG = {
+            REQUIRED_DURATION: 2000,
+            CONFIDENCE_THRESHOLD: 0.4
+        };
+        
+        let actionState = {
+            isDetecting: false,
+            startTime: null,
+            isTriggered: false,
+            isAnimating: false
+        };
+        
+        function onCelebrateStart() {
+            actionState.isAnimating = true;
+            actionIndicatorEl.textContent = '🎉 庆祝！';
+            actionIndicatorEl.className = 'action-indicator triggered';
+            
+            stickmanEl.classList.add('celebrating');
+            
+            setTimeout(() => {
+                onCelebrateEnd();
+            }, 2500);
+        }
+        
+        function onCelebrateEnd() {
+            actionState.isTriggered = false;
+            actionState.isAnimating = false;
+            actionState.isDetecting = false;
+            actionState.startTime = null;
+            
+            stickmanEl.classList.remove('celebrating');
+            actionIndicatorEl.style.display = 'none';
+            progressBarEl.style.display = 'none';
+            progressFillEl.style.width = '0%';
+        }
+        
+        function detectHandsUp(keypoints) {
+            if (actionState.isAnimating) return;
+            
+            const leftShoulder = keypoints[KEYPOINTS.LEFT_SHOULDER];
+            const rightShoulder = keypoints[KEYPOINTS.RIGHT_SHOULDER];
+            const leftWrist = keypoints[KEYPOINTS.LEFT_WRIST];
+            const rightWrist = keypoints[KEYPOINTS.RIGHT_WRIST];
+            
+            if (leftShoulder.score < ACTION_CONFIG.CONFIDENCE_THRESHOLD ||
+                rightShoulder.score < ACTION_CONFIG.CONFIDENCE_THRESHOLD ||
+                leftWrist.score < ACTION_CONFIG.CONFIDENCE_THRESHOLD ||
+                rightWrist.score < ACTION_CONFIG.CONFIDENCE_THRESHOLD) {
+                if (actionState.isDetecting) {
+                    actionState.isDetecting = false;
+                    actionState.startTime = null;
+                    actionIndicatorEl.style.display = 'none';
+                    progressBarEl.style.display = 'none';
+                    progressFillEl.style.width = '0%';
+                }
+                return;
+            }
+            
+            const shoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+            const isLeftHandUp = leftWrist.y < shoulderY;
+            const isRightHandUp = rightWrist.y < shoulderY;
+            const isBothHandsUp = isLeftHandUp && isRightHandUp;
+            
+            if (isBothHandsUp) {
+                if (!actionState.isDetecting) {
+                    actionState.isDetecting = true;
+                    actionState.startTime = performance.now();
+                    actionIndicatorEl.style.display = 'block';
+                    actionIndicatorEl.textContent = '保持住...';
+                    actionIndicatorEl.className = 'action-indicator detecting';
+                    progressBarEl.style.display = 'block';
+                }
+                
+                const elapsed = performance.now() - actionState.startTime;
+                const progress = Math.min(elapsed / ACTION_CONFIG.REQUIRED_DURATION * 100, 100);
+                progressFillEl.style.width = `${progress}%`;
+                
+                if (elapsed >= ACTION_CONFIG.REQUIRED_DURATION && !actionState.isTriggered) {
+                    actionState.isTriggered = true;
+                    onCelebrateStart();
+                }
+            } else {
+                if (actionState.isDetecting && !actionState.isTriggered) {
+                    actionState.isDetecting = false;
+                    actionState.startTime = null;
+                    actionIndicatorEl.style.display = 'none';
+                    progressBarEl.style.display = 'none';
+                    progressFillEl.style.width = '0%';
+                }
+            }
+        }
+        
+        const KEYPOINTS = {
+            NOSE: 0,
+            LEFT_EYE: 1,
+            RIGHT_EYE: 2,
+            LEFT_EAR: 3,
+            RIGHT_EAR: 4,
+            LEFT_SHOULDER: 5,
+            RIGHT_SHOULDER: 6,
+            LEFT_ELBOW: 7,
+            RIGHT_ELBOW: 8,
+            LEFT_WRIST: 9,
+            RIGHT_WRIST: 10,
+            LEFT_HIP: 11,
+            RIGHT_HIP: 12,
+            LEFT_KNEE: 13,
+            RIGHT_KNEE: 14,
+            LEFT_ANKLE: 15,
+            RIGHT_ANKLE: 16
+        };
+
+        const smoothedAngles = {
+            upperArmLeft: 0,
+            forearmLeft: 0,
+            upperArmRight: 0,
+            forearmRight: 0,
+            upperLegLeft: 0,
+            lowerLegLeft: 0,
+            upperLegRight: 0,
+            lowerLegRight: 0,
+            torso: 0
+        };
+        
+        const SMOOTHING_FACTOR = 0.3;
+        
+        function smoothAngle(current, target) {
+            if (current === 0) return target;
+            let diff = target - current;
+            while (diff > 180) diff -= 360;
+            while (diff < -180) diff += 360;
+            return current + diff * SMOOTHING_FACTOR;
+        }
+        
+        async function initCamera() {
+            try {
+                statusEl.innerHTML = '<span class="loading"></span><span>正在请求摄像头权限...</span>';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                
+                return new Promise((resolve, reject) => {
+                    video.onloadedmetadata = () => {
+                        video.play().then(resolve).catch(reject);
+                    };
+                    video.onerror = reject;
+                });
+            } catch (error) {
+                statusEl.innerHTML = '❌ 无法访问摄像头：' + error.message;
+                console.error('摄像头错误:', error);
+                throw error;
+            }
+        }
+        
+        async function loadModel() {
+            try {
+                statusEl.innerHTML = '<span class="loading"></span><span>正在加载 MoveNet 模型 (约10MB)...</span>';
+                
+                await tf.setBackend('webgl');
+                await tf.ready();
+                
+                const model = poseDetection.SupportedModels.MoveNet;
+                const detectorConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
+                    enableSmoothing: true,
+                    minPoseScore: 0.3
+                };
+                
+                detector = await poseDetection.createDetector(model, detectorConfig);
+                isModelLoaded = true;
+                
+                statusEl.innerHTML = '✅ 模型加载完成！开始检测...';
+                detectPose();
+            } catch (error) {
+                console.error('模型加载失败:', error);
+                statusEl.innerHTML = '❌ 模型加载失败: ' + error.message;
+                
+                setTimeout(() => {
+                    loadModelFallback();
+                }, 1000);
+            }
+        }
+        
+        async function loadModelFallback() {
+            try {
+                statusEl.innerHTML = '<span class="loading"></span><span>尝试加载轻量级模型...</span>';
+                
+                const model = poseDetection.SupportedModels.MoveNet;
+                const detectorConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+                };
+                
+                detector = await poseDetection.createDetector(model, detectorConfig);
+                isModelLoaded = true;
+                
+                statusEl.innerHTML = '✅ 轻量级模型加载完成！';
+                detectPose();
+            } catch (error) {
+                console.error('后备模型也加载失败:', error);
+                statusEl.innerHTML = '❌ 所有模型加载失败，请刷新重试';
+            }
+        }
+        
+        function calculateSimpleAngle(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const radians = Math.atan2(dy, dx);
+            const degrees = radians * (180 / Math.PI);
+            return degrees + 90;
+        }
+        
+        function updateStickman(keypoints) {
+            if (actionState.isAnimating) return;
+            
+            const confidenceThreshold = 0.35;
+            
+            const leftShoulder = keypoints[KEYPOINTS.LEFT_SHOULDER];
+            const rightShoulder = keypoints[KEYPOINTS.RIGHT_SHOULDER];
+            const leftElbow = keypoints[KEYPOINTS.LEFT_ELBOW];
+            const rightElbow = keypoints[KEYPOINTS.RIGHT_ELBOW];
+            const leftWrist = keypoints[KEYPOINTS.LEFT_WRIST];
+            const rightWrist = keypoints[KEYPOINTS.RIGHT_WRIST];
+            const leftHip = keypoints[KEYPOINTS.LEFT_HIP];
+            const rightHip = keypoints[KEYPOINTS.RIGHT_HIP];
+            const leftKnee = keypoints[KEYPOINTS.LEFT_KNEE];
+            const rightKnee = keypoints[KEYPOINTS.RIGHT_KNEE];
+            const leftAnkle = keypoints[KEYPOINTS.LEFT_ANKLE];
+            const rightAnkle = keypoints[KEYPOINTS.RIGHT_ANKLE];
+            
+            if (leftShoulder.score > confidenceThreshold && rightShoulder.score > confidenceThreshold) {
+                if (leftElbow.score > confidenceThreshold) {
+                    const leftUpperArmAngle = calculateSimpleAngle(leftShoulder, leftElbow);
+                    smoothedAngles.upperArmLeft = smoothAngle(smoothedAngles.upperArmLeft, leftUpperArmAngle);
+                    document.getElementById('upper-arm-left').style.transform = `rotate(${smoothedAngles.upperArmLeft}deg)`;
+                    
+                    if (leftWrist.score > confidenceThreshold) {
+                        const leftForearmAngle = calculateSimpleAngle(leftElbow, leftWrist) - smoothedAngles.upperArmLeft;
+                        smoothedAngles.forearmLeft = smoothAngle(smoothedAngles.forearmLeft, leftForearmAngle);
+                        document.getElementById('forearm-left').style.transform = `rotate(${smoothedAngles.forearmLeft}deg)`;
+                    }
+                }
+                
+                if (rightElbow.score > confidenceThreshold) {
+                    const rightUpperArmAngle = calculateSimpleAngle(rightShoulder, rightElbow);
+                    smoothedAngles.upperArmRight = smoothAngle(smoothedAngles.upperArmRight, rightUpperArmAngle);
+                    document.getElementById('upper-arm-right').style.transform = `rotate(${smoothedAngles.upperArmRight}deg)`;
+                    
+                    if (rightWrist.score > confidenceThreshold) {
+                        const rightForearmAngle = calculateSimpleAngle(rightElbow, rightWrist) - smoothedAngles.upperArmRight;
+                        smoothedAngles.forearmRight = smoothAngle(smoothedAngles.forearmRight, rightForearmAngle);
+                        document.getElementById('forearm-right').style.transform = `rotate(${smoothedAngles.forearmRight}deg)`;
+                    }
+                }
+            }
+            
+            if (leftHip.score > confidenceThreshold && rightHip.score > confidenceThreshold) {
+                const shoulderCenter = {
+                    x: (leftShoulder.x + rightShoulder.x) / 2,
+                    y: (leftShoulder.y + rightShoulder.y) / 2
+                };
+                const hipCenter = {
+                    x: (leftHip.x + rightHip.x) / 2,
+                    y: (leftHip.y + rightHip.y) / 2
+                };
+                const torsoAngle = calculateSimpleAngle(shoulderCenter, hipCenter);
+                smoothedAngles.torso = smoothAngle(smoothedAngles.torso, torsoAngle);
+                document.getElementById('torso').style.transform = `translateX(-50%) rotate(${smoothedAngles.torso - 90}deg)`;
+                
+                if (leftKnee.score > confidenceThreshold) {
+                    const leftUpperLegAngle = calculateSimpleAngle(leftHip, leftKnee);
+                    smoothedAngles.upperLegLeft = smoothAngle(smoothedAngles.upperLegLeft, leftUpperLegAngle);
+                    document.getElementById('upper-leg-left').style.transform = `rotate(${smoothedAngles.upperLegLeft}deg)`;
+                    
+                    if (leftAnkle.score > confidenceThreshold) {
+                        const leftLowerLegAngle = calculateSimpleAngle(leftKnee, leftAnkle) - smoothedAngles.upperLegLeft;
+                        smoothedAngles.lowerLegLeft = smoothAngle(smoothedAngles.lowerLegLeft, leftLowerLegAngle);
+                        document.getElementById('lower-leg-left').style.transform = `rotate(${smoothedAngles.lowerLegLeft}deg)`;
+                    }
+                }
+                
+                if (rightKnee.score > confidenceThreshold) {
+                    const rightUpperLegAngle = calculateSimpleAngle(rightHip, rightKnee);
+                    smoothedAngles.upperLegRight = smoothAngle(smoothedAngles.upperLegRight, rightUpperLegAngle);
+                    document.getElementById('upper-leg-right').style.transform = `rotate(${smoothedAngles.upperLegRight}deg)`;
+                    
+                    if (rightAnkle.score > confidenceThreshold) {
+                        const rightLowerLegAngle = calculateSimpleAngle(rightKnee, rightAnkle) - smoothedAngles.upperLegRight;
+                        smoothedAngles.lowerLegRight = smoothAngle(smoothedAngles.lowerLegRight, rightLowerLegAngle);
+                        document.getElementById('lower-leg-right').style.transform = `rotate(${smoothedAngles.lowerLegRight}deg)`;
+                    }
+                }
+            }
+        }
+        
+        function drawKeypoints(keypoints, skeletons) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            skeletons.forEach(([p1, p2]) => {
+                const kp1 = keypoints[p1];
+                const kp2 = keypoints[p2];
+                if (kp1.score > 0.3 && kp2.score > 0.3) {
+                    ctx.beginPath();
+                    ctx.moveTo(kp1.x, kp1.y);
+                    ctx.lineTo(kp2.x, kp2.y);
+                    ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            });
+            
+            keypoints.forEach((keypoint) => {
+                if (keypoint.score > 0.3) {
+                    ctx.beginPath();
+                    ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = keypoint.score > 0.7 ? '#64c8ff' : '#fbbf24';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        const SKELETON_CONNECTIONS = [
+            [KEYPOINTS.LEFT_SHOULDER, KEYPOINTS.RIGHT_SHOULDER],
+            [KEYPOINTS.LEFT_SHOULDER, KEYPOINTS.LEFT_ELBOW],
+            [KEYPOINTS.RIGHT_SHOULDER, KEYPOINTS.RIGHT_ELBOW],
+            [KEYPOINTS.LEFT_ELBOW, KEYPOINTS.LEFT_WRIST],
+            [KEYPOINTS.RIGHT_ELBOW, KEYPOINTS.RIGHT_WRIST],
+            [KEYPOINTS.LEFT_SHOULDER, KEYPOINTS.LEFT_HIP],
+            [KEYPOINTS.RIGHT_SHOULDER, KEYPOINTS.RIGHT_HIP],
+            [KEYPOINTS.LEFT_HIP, KEYPOINTS.RIGHT_HIP],
+            [KEYPOINTS.LEFT_HIP, KEYPOINTS.LEFT_KNEE],
+            [KEYPOINTS.RIGHT_HIP, KEYPOINTS.RIGHT_KNEE],
+            [KEYPOINTS.LEFT_KNEE, KEYPOINTS.LEFT_ANKLE],
+            [KEYPOINTS.RIGHT_KNEE, KEYPOINTS.RIGHT_ANKLE]
+        ];
+        
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        async function detectPose() {
+            if (!isModelLoaded || !detector) {
+                animationFrameId = requestAnimationFrame(detectPose);
+                return;
+            }
+            
+            try {
+                const poses = await detector.estimatePoses(video, {
+                    flipHorizontal: false
+                });
+                
+                frameCount++;
+                const currentTime = performance.now();
+                if (currentTime - lastTime >= 1000) {
+                    const fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+                    if (frameCount > 10) {
+                        statusEl.innerHTML = `✅ 检测中 - FPS: ${fps}`;
+                    }
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+                
+                if (poses.length > 0 && poses[0].keypoints) {
+                    const keypoints = poses[0].keypoints;
+                    drawKeypoints(keypoints, SKELETON_CONNECTIONS);
+                    detectHandsUp(keypoints);
+                    updateStickman(keypoints);
+                }
+                
+                animationFrameId = requestAnimationFrame(detectPose);
+            } catch (error) {
+                console.error('姿态检测错误:', error);
+                setTimeout(() => {
+                    animationFrameId = requestAnimationFrame(detectPose);
+                }, 100);
+            }
+        }
+        
+        async function init() {
+            try {
+                canvas.width = 400;
+                canvas.height = 300;
+                
+                await initCamera();
+                await loadModel();
+            } catch (error) {
+                console.error('初始化失败:', error);
+            }
+        }
+        
+        window.addEventListener('beforeunload', () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+        
+        init();
+    </script>
+</body>
+</html>
