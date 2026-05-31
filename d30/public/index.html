@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频驱动3D人脸动画 - 低延迟优化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d2ff;
+        }
+
+        #face-container {
+            width: 100%;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d2ff;
+        }
+
+        .status-value.high {
+            color: #ff6b6b;
+        }
+
+        .status-value.good {
+            color: #51cf66;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .optimization-info {
+            background: rgba(81, 207, 102, 0.1);
+            border: 1px solid rgba(81, 207, 102, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .optimization-info h3 {
+            color: #51cf66;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .optimization-info ul {
+            list-style: none;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .optimization-info li {
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .optimization-info li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #51cf66;
+        }
+
+        .latency-chart {
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-top: 15px;
+            display: flex;
+            align-items: flex-end;
+            padding: 10px;
+            gap: 2px;
+        }
+
+        .latency-bar {
+            flex: 1;
+            background: linear-gradient(to top, #00d2ff, #3a7bd5);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease;
+            min-height: 2px;
+        }
+
+        .latency-bar.high {
+            background: linear-gradient(to top, #ff6b6b, #ee5a24);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎭 音频驱动3D人脸动画</h1>
+            <p class="subtitle">低延迟优化版 - 口型同步系统</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>3D人脸渲染</h2>
+                <div id="face-container"></div>
+                
+                <div class="controls">
+                    <button id="startBtn" class="btn-primary">
+                        开始音频采集
+                    </button>
+                    <button id="stopBtn" class="btn-danger" disabled>
+                        停止音频采集
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>性能监控</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">MFCC提取延迟</div>
+                        <div id="mfccLatency" class="status-value good">-- ms</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">模型推理延迟</div>
+                        <div id="inferenceLatency" class="status-value good">-- ms</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">音高 (Hz)</div>
+                        <div id="pitchValue" class="status-value">--</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">音量</div>
+                        <div id="volumeValue" class="status-value">--</div>
+                    </div>
+                    <div class="status-item" style="grid-column: span 2;">
+                        <div class="status-label">检测到的情感</div>
+                        <div id="emotionType" class="status-value">😐 中性</div>
+                        <div id="emotionIntensity" style="font-size: 0.8rem; color: #888; margin-top: 5px;">强度: 0%</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">帧序列</div>
+                        <div id="sequenceNum" class="status-value">0</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">连接状态</div>
+                        <div id="connectionStatus" class="status-value">未连接</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; font-size: 1rem; color: #00d2ff;">延迟历史</h3>
+                <div id="latencyChart" class="latency-chart"></div>
+
+                <div class="optimization-info">
+                    <h3>✅ 已启用的功能</h3>
+                    <ul>
+                        <li>客户端序列号机制 - 保证blendshape顺序</li>
+                        <li>服务端请求队列 - FIFO顺序处理</li>
+                        <li>MFCC优化实现 - 处理时间<10ms</li>
+                        <li>增量平滑插值 - 消除动画抖动</li>
+                        <li>情感增强 - 基于音高的眉毛动作</li>
+                        <li>支持5种情感：兴奋/高兴/愤怒/悲伤/中性</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/audioProcessor.js"></script>
+    <script src="js/wsClient.js"></script>
+    <script src="js/faceRenderer.js"></script>
+    <script>
+        class App {
+            constructor() {
+                this.audioProcessor = null;
+                this.wsClient = null;
+                this.faceRenderer = null;
+                this.isRunning = false;
+                this.latencyHistory = [];
+                this.maxLatencyHistory = 50;
+
+                this.initElements();
+                this.initFaceRenderer();
+                this.bindEvents();
+            }
+
+            initElements() {
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.mfccLatencyEl = document.getElementById('mfccLatency');
+                this.inferenceLatencyEl = document.getElementById('inferenceLatency');
+                this.sequenceNumEl = document.getElementById('sequenceNum');
+                this.connectionStatusEl = document.getElementById('connectionStatus');
+                this.latencyChartEl = document.getElementById('latencyChart');
+                this.faceContainer = document.getElementById('face-container');
+                this.pitchValueEl = document.getElementById('pitchValue');
+                this.volumeValueEl = document.getElementById('volumeValue');
+                this.emotionTypeEl = document.getElementById('emotionType');
+                this.emotionIntensityEl = document.getElementById('emotionIntensity');
+            }
+
+            async initFaceRenderer() {
+                try {
+                    this.faceRenderer = new FaceRenderer({
+                        container: this.faceContainer,
+                        width: 400,
+                        height: 400,
+                        smoothingFactor: 0.3
+                    });
+                    await this.faceRenderer.init();
+                    console.log('Face renderer ready');
+                } catch (error) {
+                    console.error('Failed to initialize face renderer:', error);
+                }
+            }
+
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.stopBtn.addEventListener('click', () => this.stop());
+            }
+
+            async start() {
+                try {
+                    this.startBtn.disabled = true;
+
+                    this.wsClient = new WSClient({
+                        url: 'ws://localhost:8080',
+                        onConnect: () => this.updateConnectionStatus('已连接', 'good'),
+                        onDisconnect: () => this.updateConnectionStatus('已断开', 'high'),
+                        onBlendshapes: (blendshapes, timestamp, emotion) => {
+                            if (this.faceRenderer) {
+                                this.faceRenderer.updateBlendshapes(blendshapes);
+                            }
+                            if (emotion) {
+                                this.updateInferenceLatency(emotion.inferenceTime || 0);
+                            }
+                        }
+                    });
+
+                    await this.wsClient.connect();
+
+                    this.audioProcessor = new AudioProcessor({
+                        sampleRate: 16000,
+                        bufferSize: 512,
+                        onAudioProcess: (data) => {
+                            this.updateMfccLatency(data.latency);
+                            this.updateSequenceNumber(data.timestamp);
+                            this.updatePitch(data.pitch);
+                            this.updateVolume(data.volume);
+                            this.updateEmotion(data.emotion);
+                            
+                            if (this.wsClient && this.wsClient.isConnected) {
+                                this.wsClient.sendAudioFeatures(data.mfcc, data.timestamp, data.emotion);
+                            }
+                        }
+                    });
+
+                    await this.audioProcessor.init();
+
+                    this.isRunning = true;
+                    this.startBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+
+                    console.log('Application started successfully');
+                } catch (error) {
+                    console.error('Failed to start application:', error);
+                    this.updateConnectionStatus('连接失败', 'high');
+                    this.startBtn.disabled = false;
+                }
+            }
+
+            stop() {
+                if (this.audioProcessor) {
+                    this.audioProcessor.stop();
+                }
+                if (this.wsClient) {
+                    this.wsClient.disconnect();
+                }
+
+                this.isRunning = false;
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+
+                console.log('Application stopped');
+            }
+
+            updateMfccLatency(latency) {
+                this.mfccLatencyEl.textContent = `${latency.toFixed(1)} ms`;
+                this.mfccLatencyEl.className = `status-value ${latency > 50 ? 'high' : 'good'}`;
+                this.addLatencyBar(latency);
+            }
+
+            updateSequenceNumber(timestamp) {
+                const current = parseInt(this.sequenceNumEl.textContent);
+                this.sequenceNumEl.textContent = current + 1;
+            }
+
+            updateConnectionStatus(status, quality) {
+                this.connectionStatusEl.textContent = status;
+                this.connectionStatusEl.className = `status-value ${quality}`;
+            }
+
+            addLatencyBar(latency) {
+                this.latencyHistory.push(latency);
+                if (this.latencyHistory.length > this.maxLatencyHistory) {
+                    this.latencyHistory.shift();
+                }
+
+                this.latencyChartEl.innerHTML = '';
+                const maxLatency = Math.max(...this.latencyHistory, 50);
+                
+                this.latencyHistory.forEach(lat => {
+                    const bar = document.createElement('div');
+                    bar.className = `latency-bar ${lat > 50 ? 'high' : ''}`;
+                    bar.style.height = `${(lat / maxLatency) * 100}%`;
+                    this.latencyChartEl.appendChild(bar);
+                });
+            }
+
+            updatePitch(pitch) {
+                this.pitchValueEl.textContent = pitch > 0 ? `${pitch.toFixed(0)}` : '--';
+            }
+
+            updateVolume(volume) {
+                const volumePercent = Math.min(100, Math.round(volume * 1000));
+                this.volumeValueEl.textContent = `${volumePercent}%`;
+            }
+
+            updateEmotion(emotion) {
+                if (!emotion) return;
+                
+                const emotionEmojis = {
+                    'excited': '🤩 兴奋',
+                    'happy': '😊 高兴',
+                    'angry': '😠 愤怒',
+                    'sad': '😢 悲伤',
+                    'neutral': '😐 中性'
+                };
+                
+                const emotionColors = {
+                    'excited': '#ffd700',
+                    'happy': '#51cf66',
+                    'angry': '#ff6b6b',
+                    'sad': '#74c0fc',
+                    'neutral': '#888'
+                };
+                
+                const displayName = emotionEmojis[emotion.type] || '😐 中性';
+                const color = emotionColors[emotion.type] || '#888';
+                
+                this.emotionTypeEl.textContent = displayName;
+                this.emotionTypeEl.style.color = color;
+                this.emotionIntensityEl.textContent = `强度: ${Math.round(emotion.intensity * 100)}%`;
+            }
+
+            updateInferenceLatency(latency) {
+                this.inferenceLatencyEl.textContent = `${latency.toFixed(0)} ms`;
+                this.inferenceLatencyEl.className = `status-value ${latency > 50 ? 'high' : 'good'}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new App();
+        });
+    </script>
+</body>
+</html>
