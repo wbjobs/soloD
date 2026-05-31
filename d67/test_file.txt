@@ -1,0 +1,12 @@
+Hello, CryptoFS!
+
+This is a test file for the encrypted FUSE filesystem.
+When you read this file through the mount point, it will be automatically decrypted.
+
+Features:
+- Read-only filesystem (writes return EPERM)
+- XOR encryption/decryption on-the-fly
+- Files are stored encrypted in encrypted_storage/
+- Decrypted content is only visible in mount_point/
+
+Enjoy!
