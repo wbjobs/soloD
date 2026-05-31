@@ -1,0 +1,418 @@
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #111820;
+  --bg-tertiary: #1a2332;
+  --text-primary: #e6e9ef;
+  --text-secondary: #8b949e;
+  --accent-green: #77e64a;
+  --accent-blue: #56b6c2;
+  --accent-yellow: #e6c07b;
+  --accent-red: #e06c75;
+  --accent-purple: #c678dd;
+  --border-color: #2d3748;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header p {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.status-bar {
+  display: flex;
+  gap: 24px;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.connected {
+  background: var(--accent-green);
+  animation: pulse 2s infinite;
+}
+
+.status-dot.disconnected {
+  background: var(--accent-red);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-card .label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stat-card .value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+.filter-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: var(--bg-primary);
+}
+
+.events-table {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 80px 100px 120px 100px 1fr;
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-body {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 80px 100px 120px 100px 1fr;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  transition: background 0.2s;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.table-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.table-row.new {
+  background: rgba(119, 230, 74, 0.1);
+}
+
+.syscall-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.syscall-badge.openat {
+  background: rgba(86, 182, 194, 0.2);
+  color: var(--accent-blue);
+}
+
+.syscall-badge.execve {
+  background: rgba(230, 192, 123, 0.2);
+  color: var(--accent-yellow);
+}
+
+.syscall-badge.connect {
+  background: rgba(198, 120, 221, 0.2);
+  color: var(--accent-purple);
+}
+
+.pid {
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+.comm {
+  color: var(--accent-green);
+  font-weight: 500;
+}
+
+.timestamp {
+  color: var(--text-secondary);
+}
+
+.args {
+  color: var(--text-primary);
+  word-break: break-all;
+  font-family: inherit;
+}
+
+.args .filename {
+  color: var(--accent-yellow);
+}
+
+.no-events {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.no-events svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 风险统计卡片 */
+.stat-card.risk-critical .value,
+.stat-card.risk-high .value,
+.stat-card.risk-medium .value {
+  color: var(--risk-color);
+}
+
+.stat-card.risk-critical {
+  border-color: rgba(255, 59, 48, 0.4);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 59, 48, 0.1) 100%);
+}
+
+.stat-card.risk-high {
+  border-color: rgba(255, 149, 0, 0.4);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 149, 0, 0.1) 100%);
+}
+
+.stat-card.risk-medium {
+  border-color: rgba(255, 204, 0, 0.4);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 204, 0, 0.1) 100%);
+}
+
+/* 过滤器分组 */
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.clear-btn {
+  margin-left: auto;
+}
+
+/* 风险过滤按钮 */
+.filter-btn.risk-filter.active {
+  background: var(--risk-color);
+  border-color: var(--risk-color);
+}
+
+.filter-btn.risk-filter.critical {
+  --risk-color: #ff3b30;
+}
+
+.filter-btn.risk-filter.high {
+  --risk-color: #ff9500;
+}
+
+.filter-btn.risk-filter.medium {
+  --risk-color: #ffcc00;
+}
+
+.filter-btn.risk-filter.critical:hover,
+.filter-btn.risk-filter.critical.active {
+  color: var(--bg-primary);
+}
+
+.filter-btn.risk-filter.high:hover,
+.filter-btn.risk-filter.high.active {
+  color: var(--bg-primary);
+}
+
+.filter-btn.risk-filter.medium:hover,
+.filter-btn.risk-filter.medium.active {
+  color: var(--bg-primary);
+}
+
+/* 风险徽章 */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--risk-color) 20%, transparent);
+  color: var(--risk-color);
+}
+
+.risk-score {
+  background: var(--risk-color);
+  color: var(--bg-primary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* 表格行风险高亮 */
+.table-row.risk-critical {
+  background: rgba(255, 59, 48, 0.15);
+  border-left: 4px solid #ff3b30;
+}
+
+.table-row.risk-critical:hover {
+  background: rgba(255, 59, 48, 0.25);
+}
+
+.table-row.risk-high {
+  background: rgba(255, 149, 0, 0.1);
+  border-left: 4px solid #ff9500;
+}
+
+.table-row.risk-high:hover {
+  background: rgba(255, 149, 0, 0.2);
+}
+
+.table-row.risk-medium {
+  background: rgba(255, 204, 0, 0.08);
+  border-left: 4px solid #ffcc00;
+}
+
+.table-row.risk-medium:hover {
+  background: rgba(255, 204, 0, 0.15);
+}
+
+.table-row.risk-low {
+  border-left: 4px solid #34c759;
+}
+
+/* 表格布局调整 */
+.table-header {
+  grid-template-columns: 80px 60px 100px 80px 100px 1fr;
+}
+
+.table-row {
+  grid-template-columns: 80px 60px 100px 80px 100px 1fr;
+}

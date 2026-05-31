@@ -1,0 +1,8 @@
+[build]
+rustflags = [
+    "-C", "link-arg=-Tlinker.ld",
+    "-C", "relocation-model=pie",
+    "-C", "linker=clang",
+    "-C", "link-arg=--target=bpf",
+    "-C", "link-arg=-O2",
+]
