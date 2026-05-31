@@ -1,0 +1,56 @@
+# Docker Log Monitor 配置文件
+
+docker:
+  # 要监控的容器ID或名称
+  container_id: ""
+  # 是否跟随日志输出（默认true）
+  follow: true
+  # 从最近多少条日志开始监控（默认"100"）
+  tail: "100"
+  # 是否显示标准输出日志
+  show_stdout: true
+  # 是否显示错误输出日志
+  show_stderr: true
+
+filters:
+  # 需要过滤和告警的关键字列表
+  keywords:
+    - "ERROR"
+    - "error"
+    - "Error"
+    - "Exception"
+    - "exception"
+    - "FATAL"
+    - "fatal"
+
+webhook:
+  # 是否启用Webhook告警
+  enabled: false
+
+  # 钉钉机器人配置
+  dingtalk:
+    # Webhook地址
+    webhook_url: ""
+    # 签名密钥（如果开启了加签验证）
+    secret: ""
+
+  # Slack机器人配置
+  slack:
+    # Webhook地址
+    webhook_url: ""
+    # 目标频道
+    channel: "#alerts"
+
+dashboard:
+  # 是否启用Web Dashboard
+  enabled: true
+  # 监听地址
+  host: "localhost"
+  # 监听端口
+  port: 8080
+  # 最大缓存日志条数
+  max_logs: 500
+  # 日志上下文回溯时间窗口（秒）
+  context_window_seconds: 30
+  # 告警历史最大记录数
+  max_alert_history: 100
