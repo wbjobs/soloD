@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3 uid="uid://b6x8yz7q5w9e1"]
+
+[ext_resource type="Script" path="res://player.gd" id="1_abcde"]
+[ext_resource type="Script" path="res://level_loader.gd" id="2_fghij"]
+
+[node name="Main" type="Node2D"]
+
+[node name="LevelLoader" type="Node2D" parent="."]
+script = ExtResource("2_fghij")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(100, 500)
+script = ExtResource("1_abcde")
+
+[node name="Sprite2D" type="ColorRect" parent="Player"]
+offset_left = -20.0
+offset_top = -30.0
+offset_right = 20.0
+offset_bottom = 30.0
+size = Vector2(40, 60)
+color = Color(0.2, 0.4, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = RectangleShape2D(size=Vector2(40, 60))
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+position_smoothing_speed = 5.0
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(640, 680)
+
+[node name="Sprite2D" type="ColorRect" parent="Ground"]
+offset_left = -640.0
+offset_top = -20.0
+offset_right = 640.0
+offset_bottom = 20.0
+size = Vector2(1280, 40)
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = RectangleShape2D(size=Vector2(1280, 40))
