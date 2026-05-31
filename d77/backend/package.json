@@ -1,0 +1,20 @@
+{
+  "name": "social-network-backend",
+  "version": "1.0.0",
+  "description": "Social Network Analysis Backend with Neo4j and Apollo Server",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.10.0",
+    "graphql": "^16.8.0",
+    "neo4j-driver": "^5.17.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
