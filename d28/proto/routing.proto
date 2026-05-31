@@ -1,0 +1,192 @@
+syntax = "proto3";
+
+package routing;
+
+service OrderService {
+  rpc CreateDeliveryPoint(CreateDeliveryPointRequest) returns (DeliveryPoint);
+  rpc GetDeliveryPoints(GetDeliveryPointsRequest) returns (DeliveryPointsResponse);
+  rpc UpdateDeliveryStatus(UpdateDeliveryStatusRequest) returns (DeliveryPoint);
+  
+  rpc RegisterDriver(RegisterDriverRequest) returns (Driver);
+  rpc UpdateDriverStatus(UpdateDriverStatusRequest) returns (Driver);
+  rpc GetAvailableDrivers(GetAvailableDriversRequest) returns (DriversResponse);
+  
+  rpc AssignDriverToOrder(AssignDriverRequest) returns (OrderAssignment);
+  rpc GetOrderAssignment(GetOrderAssignmentRequest) returns (OrderAssignment);
+  rpc TriggerReroute(RerouteRequest) returns (RerouteResponse);
+}
+
+service MapService {
+  rpc CalculateRoute(RouteRequest) returns (RouteResponse);
+  rpc GetDrivingInstructions(RouteRequest) returns (DrivingInstructionsResponse);
+}
+
+service NotificationService {
+  rpc SubscribeDriverLocation(SubscribeRequest) returns (stream DriverLocationUpdate);
+  rpc PublishDriverLocation(DriverLocationUpdate) returns (PublishResponse);
+}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message DeliveryPoint {
+  string id = 1;
+  string order_id = 2;
+  Location location = 3;
+  string address = 4;
+  string status = 5;
+  int32 sequence = 6;
+}
+
+message CreateDeliveryPointRequest {
+  string order_id = 1;
+  Location location = 2;
+  string address = 3;
+  int32 sequence = 4;
+}
+
+message GetDeliveryPointsRequest {
+  string order_id = 1;
+}
+
+message DeliveryPointsResponse {
+  repeated DeliveryPoint points = 1;
+}
+
+message UpdateDeliveryStatusRequest {
+  string point_id = 1;
+  string status = 2;
+}
+
+message RouteRequest {
+  repeated Location waypoints = 1;
+  string profile = 2;
+}
+
+message RouteResponse {
+  repeated Location coordinates = 1;
+  double distance = 2;
+  double duration = 3;
+  bool is_fallback = 4;
+  string error_message = 5;
+}
+
+message DrivingInstructionsResponse {
+  repeated RouteStep steps = 1;
+  double total_distance = 2;
+  double total_duration = 3;
+  bool is_fallback = 4;
+  string error_message = 5;
+}
+
+message RouteStep {
+  string instruction = 1;
+  double distance = 2;
+  double duration = 3;
+  Location start_location = 4;
+}
+
+message SubscribeRequest {
+  string driver_id = 1;
+  string order_id = 2;
+}
+
+message DriverLocationUpdate {
+  string driver_id = 1;
+  Location location = 2;
+  double heading = 3;
+  int64 timestamp = 4;
+}
+
+message PublishResponse {
+  bool success = 1;
+  bool throttled = 2;
+  int32 throttled_ms = 3;
+  int32 latency_ms = 4;
+  int32 websocket_clients = 5;
+  string error = 6;
+}
+
+message Driver {
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string vehicle_type = 4;
+  string status = 5;
+  Location current_location = 6;
+  int32 capacity = 7;
+  int32 current_load = 8;
+  int64 last_update_time = 9;
+}
+
+message RegisterDriverRequest {
+  string name = 1;
+  string phone = 2;
+  string vehicle_type = 3;
+  int32 capacity = 4;
+  Location initial_location = 5;
+}
+
+message UpdateDriverStatusRequest {
+  string driver_id = 1;
+  string status = 2;
+  Location location = 3;
+  int32 current_load = 4;
+}
+
+message GetAvailableDriversRequest {
+  Location near_location = 1;
+  double max_distance_km = 2;
+  string vehicle_type = 3;
+  int32 min_capacity = 4;
+}
+
+message DriversResponse {
+  repeated Driver drivers = 1;
+  int32 total_count = 2;
+}
+
+message OrderAssignment {
+  string assignment_id = 1;
+  string order_id = 2;
+  string driver_id = 3;
+  string status = 4;
+  repeated DeliveryPoint delivery_points = 5;
+  double estimated_duration_min = 6;
+  double total_distance_km = 7;
+  int64 assigned_at = 8;
+  int64 last_updated = 9;
+  string reroute_reason = 10;
+  int32 reroute_count = 11;
+}
+
+message AssignDriverRequest {
+  string order_id = 1;
+  string driver_id = 2;
+  repeated DeliveryPoint delivery_points = 3;
+  bool auto_select_driver = 4;
+}
+
+message GetOrderAssignmentRequest {
+  string order_id = 1;
+}
+
+message RerouteRequest {
+  string order_id = 1;
+  string reason = 2;
+  bool force_reassign = 3;
+  repeated Location traffic_hotspots = 4;
+}
+
+message RerouteResponse {
+  bool success = 1;
+  string order_id = 2;
+  OrderAssignment new_assignment = 3;
+  OrderAssignment old_assignment = 4;
+  string reason = 5;
+  bool driver_changed = 6;
+  double time_saved_min = 7;
+  string message = 8;
+}
