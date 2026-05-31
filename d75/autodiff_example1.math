@@ -1,0 +1,14 @@
+input x
+input y
+
+func f(a, b) = a^2 + 2 * a * b + b^2
+deriv f wrt a as df_da
+deriv f wrt b as df_db
+
+val = f(x, y)
+dval_dx = df_da(x, y)
+dval_dy = df_db(x, y)
+
+print val
+print dval_dx
+print dval_dy

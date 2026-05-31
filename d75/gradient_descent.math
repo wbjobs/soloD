@@ -1,0 +1,20 @@
+input x
+input y
+input lr
+
+func f(a, b) = (a - 1)^2 + (b - 2)^2 + 10
+deriv f wrt a as df_da
+deriv f wrt b as df_db
+
+current_val = f(x, y)
+grad_x = df_da(x, y)
+grad_y = df_db(x, y)
+
+new_x = x - lr * grad_x
+new_y = y - lr * grad_y
+new_val = f(new_x, new_y)
+
+print current_val
+print grad_x
+print grad_y
+print new_val

@@ -1,0 +1,13 @@
+input t
+
+func position(x) = sin(x) + cos(x)
+deriv position wrt x as velocity
+deriv velocity wrt x as acceleration
+
+pos = position(t)
+vel = velocity(t)
+acc = acceleration(t)
+
+print pos
+print vel
+print acc

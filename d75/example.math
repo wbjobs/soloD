@@ -1,0 +1,14 @@
+input x
+input y
+
+a = x + y * 2
+b = (x - y) ^ 2
+c = sqrt(a ^ 2 + b ^ 2)
+d = sin(x) + cos(y)
+e = exp(-x^2/2)
+
+print a
+print b
+print c
+print d
+print e
