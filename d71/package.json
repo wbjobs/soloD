@@ -1,0 +1,17 @@
+{
+  "name": "video-conference-app",
+  "version": "1.0.0",
+  "description": "实时视频会议应用 - WebRTC + Rust Wasm + Socket.IO",
+  "scripts": {
+    "build:wasm": "cd rust-wasm && wasm-pack build --target web",
+    "install:server": "cd node-server && npm install",
+    "install:client": "cd react-frontend && npm install",
+    "install:all": "npm run install:server && npm run install:client",
+    "start:server": "cd node-server && npm start",
+    "start:client": "cd react-frontend && npm run dev",
+    "setup": "npm run build:wasm && npm run install:all"
+  },
+  "keywords": ["webrtc", "wasm", "rust", "socket.io", "video-conference"],
+  "author": "",
+  "license": "MIT"
+}
