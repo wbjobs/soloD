@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三维城市热力图与路径规划系统</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+
+    #container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .control-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      max-width: 300px;
+      z-index: 100;
+    }
+
+    .control-panel h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 18px;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .control-group select,
+    .control-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .control-group select:focus,
+    .control-group input:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+
+    .control-group input[type="range"] {
+      padding: 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 15px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .time-display {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #007bff;
+      margin: 10px 0;
+    }
+
+    .info-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 100;
+    }
+
+    .info-panel h3 {
+      margin-bottom: 10px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      border-radius: 3px;
+    }
+
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      font-size: 12px;
+      z-index: 100;
+    }
+
+    .instructions h3 {
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .instructions p {
+      margin: 3px 0;
+      color: #666;
+    }
+
+    .path-info {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .path-info.show {
+      display: block;
+    }
+
+    .path-info h4 {
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .path-info p {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .timeline-controls {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .timeline-controls .btn {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-play {
+      background: #28a745;
+    }
+
+    .btn-play:hover {
+      background: #218838;
+    }
+
+    .btn-stop {
+      background: #dc3545;
+    }
+
+    .btn-stop:hover {
+      background: #c82333;
+    }
+
+    .speed-select {
+      width: 70px !important;
+      padding: 5px !important;
+    }
+
+    .path-options {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .path-option {
+      flex: 1;
+      min-width: 80px;
+      padding: 8px 5px;
+      background: #e9ecef;
+      border: 2px solid transparent;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 11px;
+      transition: all 0.3s;
+    }
+
+    .path-option.active {
+      background: #007bff;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    .path-option:hover {
+      background: #dee2e6;
+    }
+
+    .path-option.active:hover {
+      background: #0056b3;
+    }
+
+    .stats-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 12px;
+      z-index: 100;
+      min-width: 150px;
+    }
+
+    .stats-panel h3 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #00ffff;
+    }
+
+    .stat-item {
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      color: #ffff00;
+      font-weight: bold;
+    }
+
+    .perf-controls {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #ddd;
+    }
+
+    .perf-controls label {
+      font-size: 12px;
+    }
+
+    .multi-path-legend {
+      margin-top: 10px;
+    }
+
+    .multi-path-legend .legend-item {
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="canvas-container"></div>
+
+    <div class="control-panel">
+      <h2>🗺️ 城市控制面板</h2>
+
+      <div class="control-group">
+        <label>📍 起点</label>
+        <select id="startPoint">
+          <option value="">选择起点...</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>📍 终点</label>
+        <select id="endPoint">
+          <option value="">选择终点...</option>
+        </select>
+      </div>
+
+      <button class="btn" id="findPathBtn">规划路径</button>
+      <button class="btn btn-secondary" id="clearPathBtn" style="margin-top: 10px;">清除路径</button>
+
+      <div class="path-options" id="pathOptions" style="display: none;">
+        <div class="path-option active" data-type="shortest" style="background: #007bff; color: white;">最短路径</div>
+        <div class="path-option" data-type="fastest">最快路线</div>
+        <div class="path-option" data-type="scenic">风景路线</div>
+      </div>
+
+      <div class="path-info" id="pathInfo">
+        <h4>路径信息</h4>
+        <p id="pathDistance">距离: --</p>
+        <p id="pathPoints">节点数: --</p>
+        <p id="pathTime">预计时间: --</p>
+      </div>
+
+      <div class="control-group" style="margin-top: 20px;">
+        <label>🔥 热力图时间轴动画</label>
+        <input type="range" id="heatmapTime" min="0" max="23" value="12">
+        <div class="time-display" id="timeDisplay">12:00</div>
+        <div class="timeline-controls">
+          <button class="btn btn-play" id="playBtn">▶ 播放</button>
+          <button class="btn btn-stop" id="stopBtn">⏹ 停止</button>
+          <select id="playSpeed" class="speed-select">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>热力图透明度</label>
+        <input type="range" id="heatmapOpacity" min="0" max="100" value="70">
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="showHeatmap" checked>
+          显示热力图
+        </label>
+      </div>
+
+      <div class="perf-controls">
+        <h4 style="margin-bottom: 8px;">⚡ 性能设置</h4>
+        <div class="control-group">
+          <label>
+            <input type="checkbox" id="enableLOD" checked>
+            启用LOD细节层次
+          </label>
+        </div>
+        <div class="control-group">
+          <label>
+            <input type="checkbox" id="enableFog" checked>
+            启用雾效
+          </label>
+        </div>
+        <div class="control-group">
+          <label>渲染距离</label>
+          <input type="range" id="renderDistance" min="500" max="2000" value="1000">
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-panel" id="statsPanel">
+      <h3>📊 性能统计</h3>
+      <div class="stat-item">
+        <span>FPS:</span>
+        <span class="stat-value" id="fpsValue">60</span>
+      </div>
+      <div class="stat-item">
+        <span>三角形:</span>
+        <span class="stat-value" id="trianglesValue">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Draw Call:</span>
+        <span class="stat-value" id="drawCallsValue">0</span>
+      </div>
+      <div class="stat-item">
+        <span>可见建筑:</span>
+        <span class="stat-value" id="buildingsValue">0</span>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <h3>🎨 图例</h3>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #ff0000;"></div>
+        <span>高强度区域</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #ffff00;"></div>
+        <span>中强度区域</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #00ff00;"></div>
+        <span>低强度区域</span>
+      </div>
+      <div class="multi-path-legend">
+        <h4 style="margin: 10px 0 5px; font-size: 12px;">路径方案</h4>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #007bff; width: 10px; height: 10px;"></div>
+          <span>最短路径</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #28a745; width: 10px; height: 10px;"></div>
+          <span>最快路线</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ffc107; width: 10px; height: 10px;"></div>
+          <span>风景路线</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h3>🎮 操作说明</h3>
+      <p>鼠标左键拖动: 旋转视角</p>
+      <p>鼠标右键拖动: 平移视角</p>
+      <p>滚轮: 缩放</p>
+      <p>点击POI: 查看信息</p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
