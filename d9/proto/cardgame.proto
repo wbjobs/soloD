@@ -1,0 +1,342 @@
+syntax = "proto3";
+
+package cardgame;
+
+option go_package = "./proto";
+
+message User {
+  string id = 1;
+  string username = 2;
+  int32 level = 3;
+  int32 rating = 4;
+  int32 wins = 5;
+  int32 losses = 6;
+}
+
+message Card {
+  string id = 1;
+  string name = 2;
+  int32 cost = 3;
+  int32 attack = 4;
+  int32 health = 5;
+  string effect = 6;
+  string description = 7;
+}
+
+message CardTemplate {
+  string card_id = 1;
+  string name = 2;
+  int32 cost = 3;
+  int32 attack = 4;
+  int32 health = 5;
+  string effect = 6;
+  string description = 7;
+  string rarity = 8;
+}
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string message = 2;
+  string token = 3;
+  User user = 4;
+}
+
+message GetUserInfoRequest {
+  string user_id = 1;
+}
+
+message GetUserInfoResponse {
+  User user = 1;
+}
+
+service MatchmakingService {
+  rpc FindMatch(FindMatchRequest) returns (FindMatchResponse);
+  rpc FindAIMatch(FindAIMatchRequest) returns (FindAIMatchResponse);
+  rpc CancelMatch(CancelMatchRequest) returns (CancelMatchResponse);
+  rpc GetMatchStatus(GetMatchStatusRequest) returns (GetMatchStatusResponse);
+}
+
+message FindMatchRequest {
+  string user_id = 1;
+}
+
+message FindMatchResponse {
+  bool success = 1;
+  string message = 2;
+  string match_id = 3;
+  string status = 4;
+}
+
+message FindAIMatchRequest {
+  string user_id = 1;
+  int32 difficulty = 2;
+}
+
+message FindAIMatchResponse {
+  bool success = 1;
+  string message = 2;
+  string match_id = 3;
+}
+
+message CancelMatchRequest {
+  string user_id = 1;
+}
+
+message CancelMatchResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetMatchStatusRequest {
+  string user_id = 1;
+}
+
+message GetMatchStatusResponse {
+  string status = 1;
+  string match_id = 2;
+  string opponent_id = 3;
+  string opponent_name = 4;
+  bool is_ai = 5;
+}
+
+service GameService {
+  rpc ConnectGame(ConnectGameRequest) returns (stream GameEvent);
+  rpc ReconnectGame(ReconnectGameRequest) returns (ReconnectGameResponse);
+  rpc PlayCard(PlayCardRequest) returns (PlayCardResponse);
+  rpc EndTurn(EndTurnRequest) returns (EndTurnResponse);
+  rpc GetGameState(GetGameStateRequest) returns (GetGameStateResponse);
+  rpc GetActiveGame(GetActiveGameRequest) returns (GetActiveGameResponse);
+}
+
+message ConnectGameRequest {
+  string user_id = 1;
+  string match_id = 2;
+}
+
+message ReconnectGameRequest {
+  string user_id = 1;
+}
+
+message ReconnectGameResponse {
+  bool success = 1;
+  string message = 2;
+  string match_id = 3;
+  GameState state = 4;
+}
+
+message GetActiveGameRequest {
+  string user_id = 1;
+}
+
+message GetActiveGameResponse {
+  bool has_active_game = 1;
+  string match_id = 2;
+  GameState state = 3;
+}
+
+message GameEvent {
+  string type = 1;
+  string message = 2;
+  GameState state = 3;
+}
+
+message PlayCardRequest {
+  string user_id = 1;
+  string match_id = 2;
+  string card_id = 3;
+  int32 target_index = 4;
+}
+
+message PlayCardResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message EndTurnRequest {
+  string user_id = 1;
+  string match_id = 2;
+}
+
+message EndTurnResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetGameStateRequest {
+  string user_id = 1;
+  string match_id = 2;
+}
+
+message GetGameStateResponse {
+  GameState state = 1;
+}
+
+message GameState {
+  string match_id = 1;
+  string current_player_id = 2;
+  int32 turn_number = 3;
+  PlayerState player1 = 4;
+  PlayerState player2 = 5;
+  string game_status = 6;
+  string winner_id = 7;
+  bool is_ai_game = 8;
+}
+
+message PlayerState {
+  string user_id = 1;
+  int32 health = 2;
+  int32 mana = 3;
+  int32 max_mana = 4;
+  repeated Card hand = 5;
+  repeated Card field = 6;
+  repeated Card deck = 7;
+  string username = 8;
+  bool is_ai = 9;
+}
+
+service CollectionService {
+  rpc GetCardTemplates(GetCardTemplatesRequest) returns (GetCardTemplatesResponse);
+  rpc GetCollection(GetCollectionRequest) returns (GetCollectionResponse);
+  rpc GetDecks(GetDecksRequest) returns (GetDecksResponse);
+  rpc CreateDeck(CreateDeckRequest) returns (CreateDeckResponse);
+  rpc UpdateDeck(UpdateDeckRequest) returns (UpdateDeckResponse);
+  rpc DeleteDeck(DeleteDeckRequest) returns (DeleteDeckResponse);
+  rpc SetActiveDeck(SetActiveDeckRequest) returns (SetActiveDeckResponse);
+}
+
+message GetCardTemplatesRequest {}
+
+message GetCardTemplatesResponse {
+  repeated CardTemplate cards = 1;
+}
+
+message GetCollectionRequest {
+  string user_id = 1;
+}
+
+message GetCollectionResponse {
+  repeated string card_ids = 1;
+  map<string, int32> counts = 2;
+}
+
+message GetDecksRequest {
+  string user_id = 1;
+}
+
+message Deck {
+  string id = 1;
+  string name = 2;
+  repeated string card_ids = 3;
+  bool is_active = 4;
+}
+
+message GetDecksResponse {
+  repeated Deck decks = 1;
+}
+
+message CreateDeckRequest {
+  string user_id = 1;
+  string name = 2;
+  repeated string card_ids = 3;
+}
+
+message CreateDeckResponse {
+  bool success = 1;
+  string message = 2;
+  Deck deck = 3;
+}
+
+message UpdateDeckRequest {
+  string user_id = 1;
+  string deck_id = 2;
+  string name = 3;
+  repeated string card_ids = 4;
+}
+
+message UpdateDeckResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteDeckRequest {
+  string user_id = 1;
+  string deck_id = 2;
+}
+
+message DeleteDeckResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SetActiveDeckRequest {
+  string user_id = 1;
+  string deck_id = 2;
+}
+
+message SetActiveDeckResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+service RankingService {
+  rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse);
+  rpc GetMatchHistory(GetMatchHistoryRequest) returns (GetMatchHistoryResponse);
+}
+
+message GetLeaderboardRequest {
+  int32 limit = 1;
+}
+
+message GetLeaderboardResponse {
+  repeated UserRank rankings = 1;
+}
+
+message UserRank {
+  int32 rank = 1;
+  string user_id = 2;
+  string username = 3;
+  int32 rating = 4;
+  int32 wins = 5;
+  int32 losses = 6;
+}
+
+message GetMatchHistoryRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message GetMatchHistoryResponse {
+  repeated MatchRecord matches = 1;
+}
+
+message MatchRecord {
+  string match_id = 1;
+  string opponent_id = 2;
+  string opponent_name = 3;
+  bool won = 4;
+  int64 timestamp = 5;
+  int32 rating_change = 6;
+  bool is_ai = 7;
+}
