@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>城市地下管网管理系统</title>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  
+  <div class="toolbar">
+    <h2>城市地下管网管理系统</h2>
+    
+    <div class="section">
+      <h3>模型加载</h3>
+      <input type="text" id="tilesetUrl" placeholder="3D Tiles URL" value="https://cesium.com/downloads/3d-tiles-samples/1.1/TilesetWithDiscreteLOD/tileset.json">
+      <button id="loadTileset">加载模型</button>
+    </div>
+    
+    <div class="section">
+      <h3>剖切分析</h3>
+      <button id="enableClipping">启用剖切</button>
+      <button id="disableClipping" disabled>禁用剖切</button>
+      <br><br>
+      <label>剖切方向:</label>
+      <select id="clipDirection">
+        <option value="x">X轴</option>
+        <option value="y">Y轴</option>
+        <option value="z">Z轴</option>
+      </select>
+      <br><br>
+      <label>剖切位置:</label>
+      <input type="range" id="clipPosition" min="-100" max="100" value="0">
+      <span id="clipValue">0</span>
+    </div>
+    
+    <div class="section">
+      <h3>空间查询</h3>
+      <label>经度:</label>
+      <input type="number" id="queryLong" step="0.0001" value="116.3975">
+      <br>
+      <label>纬度:</label>
+      <input type="number" id="queryLat" step="0.0001" value="39.9086">
+      <br>
+      <label>查询半径(m):</label>
+      <input type="number" id="queryRadius" value="50">
+      <br>
+      <button id="queryPipelines">查询附近管线</button>
+      <button id="pickLocation">地图选点</button>
+    </div>
+    
+    <div class="section">
+      <h3>管网管理</h3>
+      <button id="showAllPipelines">显示所有管网</button>
+      <button id="addPipeline">添加管网</button>
+    </div>
+    
+    <div class="section">
+      <h3>爆管模拟</h3>
+      <p style="font-size: 12px; color: #666; margin-bottom: 8px;">点击地图上的管道进行爆管模拟</p>
+      <button id="startBurstMode">开始爆管模拟</button>
+      <button id="endBurstMode" disabled>结束模拟</button>
+      <button id="clearBurstAnalysis">清除分析结果</button>
+      <br><br>
+      <label>影响半径(m):</label>
+      <input type="number" id="burstRadius" value="500" min="100" max="2000">
+    </div>
+    
+    <div id="queryResults" class="results-section" style="display: none;">
+      <h3>查询结果</h3>
+      <div id="resultsList"></div>
+    </div>
+    
+    <div id="burstAnalysisResults" class="results-section" style="display: none;">
+      <h3>爆管分析结果</h3>
+      <div id="burstResultsContent"></div>
+    </div>
+  </div>
+  
+  <div id="tooltip" class="tooltip" style="display: none;"></div>
+  
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
