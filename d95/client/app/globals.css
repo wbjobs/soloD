@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-dark-900 text-dark-100 min-h-screen;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-dark-600 rounded-full hover:bg-primary-600 transition-colors;
+}
+
+/* Markdown样式 */
+.markdown-content h2 {
+  @apply text-xl font-bold text-primary-400 mt-6 mb-3 pb-2 border-b border-dark-700;
+}
+
+.markdown-content h3 {
+  @apply text-lg font-semibold text-primary-300 mt-4 mb-2;
+}
+
+.markdown-content p {
+  @apply mb-3 leading-relaxed;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply mb-3 ml-6 space-y-1;
+}
+
+.markdown-content ul {
+  @apply list-disc;
+}
+
+.markdown-content ol {
+  @apply list-decimal;
+}
+
+.markdown-content li {
+  @apply mb-1;
+}
+
+.markdown-content li::marker {
+  @apply text-primary-400;
+}
+
+.markdown-content code {
+  @apply bg-dark-700 px-1.5 py-0.5 rounded text-sm font-mono text-primary-300;
+}
+
+.markdown-content pre {
+  @apply bg-dark-800 p-4 rounded-lg overflow-x-auto mb-4 border border-dark-700;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0 text-dark-200;
+}
+
+.markdown-content strong {
+  @apply text-primary-400 font-semibold;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-primary-500 pl-4 py-2 my-4 bg-dark-800/50 rounded-r italic;
+}
+
+.markdown-content table {
+  @apply w-full border-collapse mb-4;
+}
+
+.markdown-content th,
+.markdown-content td {
+  @apply border border-dark-700 px-4 py-2 text-left;
+}
+
+.markdown-content th {
+  @apply bg-dark-800 text-primary-400 font-semibold;
+}
+
+/* 动画效果 */
+@keyframes typing {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.typing-indicator {
+  animation: typing 1.5s ease-in-out infinite;
+}
+
+/* 拖放区域样式 */
+.drop-zone {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.drop-zone-active {
+  @apply border-primary-400 bg-primary-500/10 scale-[1.02];
+}
+
+/* 按钮悬停效果 */
+.btn-glow {
+  @apply transition-all duration-300;
+}
+
+.btn-glow:hover {
+  @apply shadow-lg shadow-primary-500/30;
+}
