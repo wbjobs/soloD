@@ -1,0 +1,19 @@
+{
+  "name": "mmo-server-core",
+  "version": "1.0.0",
+  "description": "MMO Game Server Core with AOI algorithm and Socket.io Cluster Sharding",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "cluster": "node server/index-cluster.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.1"
+  },
+  "keywords": ["mmo", "game", "socket.io", "aoi", "shard", "cluster", "load-balancing"],
+  "author": "",
+  "license": "MIT"
+}

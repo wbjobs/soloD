@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMO Game - AOI Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #ui-overlay > * {
+            pointer-events: auto;
+        }
+        
+        #status-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        #chat-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 300px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        #chat-messages::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: #4ECDC4;
+            border-radius: 3px;
+        }
+        
+        .chat-message {
+            margin-bottom: 5px;
+            padding: 3px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-player {
+            font-weight: bold;
+            color: #4ECDC4;
+        }
+        
+        #chat-input-container {
+            display: flex;
+            gap: 5px;
+        }
+        
+        #chat-input {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        
+        #chat-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        #send-btn {
+            padding: 8px 15px;
+            background: #4ECDC4;
+            border: none;
+            border-radius: 4px;
+            color: #1a1a2e;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        #send-btn:hover {
+            background: #45b7aa;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        #minimap {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            border: 2px solid #4ECDC4;
+        }
+        
+        #connection-status {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .connected {
+            background: #2ecc71;
+        }
+        
+        .disconnected {
+            background: #e74c3c;
+        }
+        
+        .key {
+            display: inline-block;
+            background: #4ECDC4;
+            color: #1a1a2e;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+
+        .shard-tag {
+            display: inline-block;
+            background: #9b59b6;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .global-chat {
+            border-left: 3px solid #f39c12;
+        }
+
+        .chat-type-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .chat-local {
+            background: #4ECDC4;
+            color: #1a1a2e;
+        }
+
+        .chat-global {
+            background: #f39c12;
+            color: white;
+        }
+
+        #shard-info {
+            position: absolute;
+            top: 50px;
+            right: 170px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        #shard-info h4 {
+            margin-bottom: 8px;
+            color: #4ECDC4;
+        }
+
+        .shard-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .shard-status-ready {
+            color: #2ecc71;
+        }
+
+        .shard-status-full {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="ui-overlay">
+            <div id="connection-status" class="disconnected">
+                正在连接...
+            </div>
+            
+            <div id="status-bar">
+                <div>玩家ID: <span id="player-id">-</span></div>
+                <div>位置: (<span id="player-x">0</span>, <span id="player-y">0</span>)</div>
+                <div>周围玩家: <span id="nearby-players">0</span></div>
+                <div>线路: <span id="current-shard">-</span></div>
+            </div>
+            
+            <div id="shard-info">
+                <h4>服务器列表</h4>
+                <div id="shard-list">
+                    <div class="shard-item">加载中...</div>
+                </div>
+            </div>
+            
+            <canvas id="minimap"></canvas>
+            
+            <div id="chat-box">
+                <div id="chat-messages"></div>
+                <div id="chat-input-container">
+                    <button id="chat-type-btn" class="chat-type-btn chat-local" title="切换聊天模式">本服</button>
+                    <input type="text" id="chat-input" placeholder="输入消息...">
+                    <button id="send-btn">发送</button>
+                </div>
+            </div>
+            
+            <div id="controls">
+                <div><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 或 方向键 移动</div>
+                <div><span class="key">Enter</span> 发送聊天</div>
+                <div><span class="key">Tab</span> 切换本服/全服聊天</div>
+                <div>鼠标点击 移动到目标位置</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
