@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手势 PPT 控制系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .video-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #video, #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            z-index: 10;
+        }
+
+        .status-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .status-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .status-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .gesture-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .gesture-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .gesture-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+
+        .status-dot.loading {
+            background: #ffc107;
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 10px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            list-style: none;
+        }
+
+        .instructions li {
+            padding: 8px 0;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instructions li::before {
+            content: "✋";
+            font-size: 1.5rem;
+        }
+
+        .log-container {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .log-item {
+            padding: 5px;
+            font-size: 0.9rem;
+            color: #666;
+            border-bottom: 1px solid #eee;
+        }
+
+        .log-item.success {
+            color: #28a745;
+        }
+
+        .log-item.warning {
+            color: #ffc107;
+        }
+
+        .log-item.error {
+            color: #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 手势 PPT 控制系统</h1>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <h2 style="margin-bottom: 15px; color: #333;">📹 摄像头画面</h2>
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary" disabled>
+                        🔄 正在加载模型...
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div class="gesture-display">
+                    <div class="gesture-icon" id="gestureIcon">❓</div>
+                    <div class="gesture-text" id="gestureText">等待检测中...</div>
+                </div>
+
+                <div class="status-item">
+                    <div class="status-label">WebSocket 连接状态</div>
+                    <div class="connection-status">
+                        <div class="status-dot disconnected" id="connectionDot"></div>
+                        <span id="connectionText">未连接</span>
+                    </div>
+                </div>
+
+                <div class="status-item">
+                    <div class="status-label">模型状态</div>
+                    <div class="status-value" id="modelStatus">未加载</div>
+                </div>
+
+                <div class="status-item">
+                    <div class="status-label">最近手势计数</div>
+                    <div class="status-value" id="gestureCount">0</div>
+                </div>
+
+                <div class="instructions">
+                    <h3>📖 使用说明</h3>
+                    <ul>
+                    <li style="--emoji">✊ 握拳 → 下一页</li>
+                    <li style="--emoji">🖐️ 张开手掌 → 上一页</li>
+                    <li style="--emoji">👍 保持手势 1 秒以上触发</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="connectBtn" class="btn btn-primary">
+                        🔗 连接到后端
+                    </button>
+                </div>
+
+                <div class="log-container" id="logContainer">
+                    <div class="log-item">系统准备就绪</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.0/dist/hand-pose-detection.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
