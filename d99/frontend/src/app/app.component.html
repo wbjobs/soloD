@@ -1,0 +1,145 @@
+<div class="container">
+  <header class="header">
+    <h1>🧬 DNA序列比对工具</h1>
+    <p class="subtitle">Needleman-Wunsch全局比对算法</p>
+  </header>
+
+  <div class="input-section">
+    <div class="input-group">
+      <label for="reference">参考序列</label>
+      <textarea
+        id="reference"
+        [(ngModel)]="reference"
+        placeholder="输入DNA序列 (例如: ATCGATCG..."
+        rows="3"
+      ></textarea>
+    </div>
+
+    <div class="input-group">
+      <label for="sample">样本序列</label>
+      <textarea
+        id="sample"
+        [(ngModel)]="sample"
+        placeholder="输入DNA序列 (例如: ATCGAAGCTCG..."
+        rows="3"
+      ></textarea>
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-primary" (click)="alignSequences()" [disabled]="loading">
+        <span *ngIf="loading">比对中...</span>
+        <span *ngIf="!loading">开始比对</span>
+      </button>
+      <button class="btn btn-secondary" (click)="loadExample()">加载示例</button>
+      <button class="btn btn-secondary" (click)="clear()">清空</button>
+      <button class="btn btn-success" (click)="downloadVCF()" [disabled]="!result">
+        📥 下载VCF
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <div *ngIf="result" class="results-section">
+    <h2>比对结果</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value match-color">{{ result.stats.identity }}%</div>
+        <div class="stat-label">序列相似性</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ result.stats.matches }}</div>
+        <div class="stat-label">匹配</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value mismatch-color">{{ result.stats.mismatches }}</div>
+        <div class="stat-label">错配</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value gap-color">{{ result.stats.gaps }}</div>
+        <div class="stat-label">缺口</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ result.stats.total_length }}</div>
+        <div class="stat-label">总长度</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ result.score }}</div>
+        <div class="stat-label">比对得分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value mismatch-color">{{ result.stats.snps_count }}</div>
+        <div class="stat-label">SNP位点</div>
+      </div>
+    </div>
+
+    <div *ngIf="result.snps.length > 0" class="snp-section">
+      <h3>🧬 SNP变异位点列表</h3>
+      <div class="snp-table">
+        <div class="snp-header">
+          <span>位置</span>
+          <span>参考碱基</span>
+          <span>变异碱基</span>
+          <span>变异类型</span>
+        </div>
+        <div *ngFor="let snp of result.snps" class="snp-row">
+          <span>{{ snp.pos }}</span>
+          <span class="nucleotide match">{{ snp.ref }}</span>
+          <span class="nucleotide mismatch">{{ snp.alt }}</span>
+          <span>SNP</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alignment-display">
+      <h3>序列比对详情</h3>
+      
+      <div class="legend">
+        <span class="legend-item">
+          <span class="legend-box match"></span> 匹配
+        </span>
+        <span class="legend-item">
+          <span class="legend-box mismatch"></span> 错配
+        </span>
+        <span class="legend-item">
+          <span class="legend-box gap"></span> 缺口
+        </span>
+      </div>
+
+      <div class="sequence-container">
+        <div class="sequence-row">
+          <span class="sequence-label">参考:</span>
+          <div class="nucleotides">
+            <span
+              *ngFor="let item of result.comparison; let i = index"
+              class="nucleotide {{ getStatusClass(item.status) }}"
+              [title]="'位置 ' + (i + 1)"
+            >
+              {{ item.reference }}
+            </span>
+          </div>
+        </div>
+
+        <div class="sequence-row">
+          <span class="sequence-label">样本:</span>
+          <div class="nucleotides">
+            <span
+              *ngFor="let item of result.comparison; let i = index"
+              class="nucleotide {{ getStatusClass(item.status) }}"
+              [title]="'位置 ' + (i + 1)"
+            >
+              {{ item.sample }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>使用 Needleman-Wunsch 算法进行全局序列比对 | Python Flask + Angular</p>
+  </footer>
+</div>
